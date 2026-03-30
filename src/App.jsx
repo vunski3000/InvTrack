@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginScreen from './screen/LoginScreen.jsx'
 import SignupScreen from './screen/SignupScreen.jsx'
 import HomeScreen from './screen/HomeScreen.jsx'
+import InventoryScreen from './screen/InventoryScreen.jsx'
 import DashboardScreen from './screen/DashboardScreen.jsx'
+import RequestScreen from './screen/RequestScreen.jsx'
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
           <Route path="/signup" element={<SignupScreen />} />
           <Route path="/home" element={<HomeScreen />} />
           <Route path="/dashboard" element={<DashboardScreen />} />
+          <Route path="/inventory" element={<InventoryScreen />} />
+          <Route path="/request" element={<RequestScreen />} />
         </Routes>
       </div>
     </Router>

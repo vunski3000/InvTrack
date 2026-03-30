@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function DashboardScreen() {
+export default function InventoryScreen() {
     const navigate = useNavigate();
 
-    // Mock data for inventory items
+    // Complete mock data for inventory items
     const [inventory, setInventory] = useState([
         { id: 1, name: 'Logitech Wireless Mouse', sku: 'WM-001', category: 'Electronics', quantity: 150, status: 'In Stock' },
         { id: 2, name: 'Mechanical Keyboard v2', sku: 'MK-042', category: 'Electronics', quantity: 12, status: 'Low Stock' },
         { id: 3, name: 'Ergonomic Office Chair', sku: 'OC-992', category: 'Furniture', quantity: 0, status: 'Out of Stock' },
         { id: 4, name: 'Black Gel Pens (10 Pack)', sku: 'GP-110', category: 'Stationery', quantity: 85, status: 'In Stock' },
         { id: 5, name: '27-inch 4K Monitor', sku: 'MN-4K27', category: 'Electronics', quantity: 8, status: 'Low Stock' },
+        { id: 6, name: 'Standing Desk', sku: 'SD-105', category: 'Furniture', quantity: 24, status: 'In Stock' },
+        { id: 7, name: 'Sticky Notes (Multi-color)', sku: 'SN-330', category: 'Stationery', quantity: 320, status: 'In Stock' },
+        { id: 8, name: 'Noise Cancelling Headphones', sku: 'HP-NC8', category: 'Electronics', quantity: 0, status: 'Out of Stock' }
     ]);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -40,6 +43,21 @@ export default function DashboardScreen() {
         );
         handleCloseEditModal();
     };
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState('All');
+
+    // Filter logic
+    const filteredInventory = useMemo(() => {
+        return inventory.filter(item => {
+            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sku.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+            const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+            
+            return matchesSearch && matchesCategory && matchesStatus;
+        });
+    }, [inventory, searchQuery, categoryFilter, statusFilter]);
 
     // Helper function to color-code status badges
     const getStatusStyle = (status) => {
@@ -121,10 +139,10 @@ export default function DashboardScreen() {
                         <h1 className="text-2xl font-bold tracking-tight mr-8">InvTrack</h1>
                         <div className="hidden md:block">
                             <div className="flex items-baseline space-x-2">
-                                <span onClick={() => navigate('/dashboard')} className="px-3 py-2 rounded-md text-sm font-medium bg-indigo-800 text-white transition-colors cursor-pointer">
+                                <span onClick={() => navigate('/dashboard')} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer">
                                     Dashboard
                                 </span>
-                                <span onClick={() => navigate('/inventory')} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer">
+                                <span onClick={() => navigate('/inventory')} className="px-3 py-2 rounded-md text-sm font-medium bg-indigo-800 text-white transition-colors cursor-pointer">
                                     Inventory
                                 </span>
                                 <span className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer">
@@ -144,60 +162,53 @@ export default function DashboardScreen() {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Top Header */}
                 <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
-                    <h2 className="text-xl font-semibold text-gray-800">Dashboard Overview</h2>
+                    <h2 className="text-xl font-semibold text-gray-800">Complete Inventory</h2>
                     <div className="flex items-center space-x-4">
-                        <button onClick={() => navigate('/request')} className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
-                            Request Item
-                        </button>
                         <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
                             + Add New Item
                         </button>
                     </div>
                 </header>
 
-                {/* Scrollable Content Area */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 lg:p-8">
-                    
-                    {/* Metric Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Total Items</p>
-                                <p className="text-2xl font-bold text-gray-900">255</p>
-                            </div>
+                    {/* Filters and Search Bar */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                        <div className="w-full sm:w-1/3">
+                            <input 
+                                type="text" 
+                                placeholder="Search by item name or SKU..." 
+                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
-                        
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Low Stock Alerts</p>
-                                <p className="text-2xl font-bold text-gray-900">2</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Total Value</p>
-                                <p className="text-2xl font-bold text-gray-900">$8,450.00</p>
-                            </div>
+                        <div className="flex gap-4 w-full sm:w-auto">
+                            <select 
+                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                            >
+                                <option value="All">All Categories</option>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Furniture">Furniture</option>
+                                <option value="Stationery">Stationery</option>
+                            </select>
+                            <select 
+                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                value={statusFilter}
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <option value="All">All Statuses</option>
+                                <option value="In Stock">In Stock</option>
+                                <option value="Low Stock">Low Stock</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                            </select>
                         </div>
                     </div>
 
                     {/* Inventory Table Section */}
                     <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
-                        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-medium text-gray-900">Recent Inventory Items</h3>
-                        </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -210,29 +221,29 @@ export default function DashboardScreen() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {inventory.map((item) => (
+                                    {filteredInventory.length > 0 ? filteredInventory.map((item) => (
                                         <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">{item.name}</div>
                                                 <div className="text-sm text-gray-500">{item.sku}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {item.category}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                                {item.quantity}
-                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.quantity}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(item.status)}`}>
-                                                    {item.status}
-                                                </span>
+                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(item.status)}`}>{item.status}</span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
                                                 <span className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                             </td>
                                         </tr>
-                                    ))}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                                                No items found matching your filters.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
