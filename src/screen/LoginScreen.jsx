@@ -26,7 +26,17 @@ export default function LoginScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 relative">
+            
+            {/* Back Button */}
+            <button 
+                onClick={() => navigate('/')} 
+                className="absolute top-6 left-6 flex items-center text-gray-600 hover:text-indigo-600 transition-colors font-medium"
+            >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Back to Home
+            </button>
+
             <div className="w-full max-w-4xl flex flex-col md:flex-row bg-white shadow-xl rounded-2xl overflow-hidden">
                 
                 {/* Branding Section */}

@@ -6,6 +6,7 @@ import HomeScreen from './screen/HomeScreen.jsx'
 import InventoryScreen from './screen/InventoryScreen.jsx'
 import DashboardScreen from './screen/DashboardScreen.jsx'
 import RequestScreen from './screen/RequestScreen.jsx'
+import PurchaseOrderScreen from './screen/PurchaseOrderScreen.jsx'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardScreen />} />
           <Route path="/inventory" element={<InventoryScreen />} />
           <Route path="/request" element={<RequestScreen />} />
+          <Route path="/purchase-orders" element={<PurchaseOrderScreen />} />
         </Routes>
       </div>
     </Router>

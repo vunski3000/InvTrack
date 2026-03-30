@@ -59,6 +59,8 @@ export default function InventoryScreen() {
         });
     }, [inventory, searchQuery, categoryFilter, statusFilter]);
 
+    const [procurementOpen, setProcurementOpen] = useState(false);
+
     // Helper function to color-code status badges
     const getStatusStyle = (status) => {
         switch (status) {
@@ -145,6 +147,18 @@ export default function InventoryScreen() {
                                 <span onClick={() => navigate('/inventory')} className="px-3 py-2 rounded-md text-sm font-medium bg-indigo-800 text-white transition-colors cursor-pointer">
                                     Inventory
                                 </span>
+                                <div className="relative">
+                                    <button onClick={() => setProcurementOpen(!procurementOpen)} onBlur={() => setTimeout(() => setProcurementOpen(false), 150)} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer flex items-center">
+                                        Procurement
+                                        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                    {procurementOpen && (
+                                        <div className="absolute mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1">
+                                            <span onClick={() => navigate('/purchase-orders')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Purchase Orders</span>
+                                            <span onClick={() => navigate('/request')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Requisition</span>
+                                        </div>
+                                    )}
+                                </div>
                                 <span className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer">
                                     Settings
                                 </span>
