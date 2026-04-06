@@ -81,7 +81,7 @@ export default function RequestScreen() {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-lg border border-gray-100 my-6">
+                <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-4xl border border-gray-100 my-6">
                     <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Request Item</h2>
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -136,69 +136,80 @@ export default function RequestScreen() {
                                 />
                             </div>
                         </div>
-                        <hr className="my-2 border-t border-gray-200"/>
-                        {items.map((item, index) => (
-                            <div key={index} className="p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-4 relative">
-                                {items.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveItem(index)}
-                                        className="absolute top-4 right-4 text-red-500 hover:text-red-700 text-sm font-medium"
-                                    >
-                                        Remove
-                                    </button>
-                                )}
-                                <h3 className="font-semibold text-gray-700">Item {index + 1}</h3>
-                                <div>
-                                    <label htmlFor={`itemNumber-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Item Number</label>
-                                    <input
-                                        type="text"
-                                        id={`itemNumber-${index}`}
-                                        value={item.itemNumber}
-                                        onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)}
-                                        required
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                                        placeholder="Enter item number or SKU"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`itemDescription-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
-                                    <textarea
-                                        id={`itemDescription-${index}`}
-                                        value={item.itemDescription}
-                                        onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
-                                        required
-                                        rows={2}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                                        placeholder="Provide a brief description"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor={`quantity-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                                    <input
-                                        type="number"
-                                        id={`quantity-${index}`}
-                                        value={item.quantity}
-                                        onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                        required
-                                        min="1"
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
-                                        placeholder="Enter quantity needed"
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                        <div className="pt-2">
-                            <button 
-                                type="button" 
-                                onClick={handleAddItem} 
-                                className="w-full bg-white border-2 border-dashed border-indigo-200 text-indigo-600 py-3 rounded-md hover:bg-indigo-50 hover:border-indigo-300 transition font-medium shadow-sm mb-4"
-                            >
-                                + Add Another Item
-                            </button>
-                            <button type="submit" className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Submit Request
-                            </button>
+                    
+                    <div className="mt-8 overflow-x-auto border border-gray-200 rounded-lg">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Item Number</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Quantity</th>
+                                    <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {items.map((item, index) => (
+                                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.itemNumber}
+                                                onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)}
+                                                required
+                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                placeholder="SKU or Number"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.itemDescription}
+                                                onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
+                                                required
+                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                placeholder="Brief description"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="number"
+                                                value={item.quantity}
+                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                required
+                                                min="1"
+                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                placeholder="Qty"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            {items.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveItem(index)}
+                                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                                    title="Remove Item"
+                                                >
+                                                    <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between">
+                        <button
+                            type="button"
+                            onClick={handleAddItem}
+                            className="w-full sm:w-auto px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm"
+                        >
+                            + Add Row
+                        </button>
+                        <button type="submit" className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                            Submit Requisition
+                        </button>
                         </div>
                     </form>
                 </div>
