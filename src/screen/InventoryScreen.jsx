@@ -1,20 +1,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function InventoryScreen() {
     const navigate = useNavigate();
 
-    // Complete mock data for inventory items
-    const [inventory, setInventory] = useState([
-        { id: 1, name: 'Logitech Wireless Mouse', sku: 'WM-001', category: 'Electronics', quantity: 150, status: 'In Stock' },
-        { id: 2, name: 'Mechanical Keyboard v2', sku: 'MK-042', category: 'Electronics', quantity: 12, status: 'Low Stock' },
-        { id: 3, name: 'Ergonomic Office Chair', sku: 'OC-992', category: 'Furniture', quantity: 0, status: 'Out of Stock' },
-        { id: 4, name: 'Black Gel Pens (10 Pack)', sku: 'GP-110', category: 'Stationery', quantity: 85, status: 'In Stock' },
-        { id: 5, name: '27-inch 4K Monitor', sku: 'MN-4K27', category: 'Electronics', quantity: 8, status: 'Low Stock' },
-        { id: 6, name: 'Standing Desk', sku: 'SD-105', category: 'Furniture', quantity: 24, status: 'In Stock' },
-        { id: 7, name: 'Sticky Notes (Multi-color)', sku: 'SN-330', category: 'Stationery', quantity: 320, status: 'In Stock' },
-        { id: 8, name: 'Noise Cancelling Headphones', sku: 'HP-NC8', category: 'Electronics', quantity: 0, status: 'Out of Stock' }
-    ]);
+    const [inventory, setInventory] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchInventory();
+    }, []);
+
+    const fetchInventory = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase.from('inventory_procurement').select('*');
+            if (error) throw error;
+            setInventory(data || []);
+        } catch (err) {
+            console.error("Error fetching inventory:", err.message);
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -36,9 +47,10 @@ export default function InventoryScreen() {
 
     const handleUpdateItem = (e) => {
         e.preventDefault();
+        // TODO: Also update the item in Supabase here before updating local state!
         setInventory(prevInventory =>
             prevInventory.map(item =>
-                item.id === editingItem.id ? { ...editingItem, quantity: parseInt(editingItem.quantity, 10) || 0 } : item
+                item.item_id === editingItem.item_id ? { ...editingItem, quantity_available: parseInt(editingItem.quantity_available, 10) || 0 } : item
             )
         );
         handleCloseEditModal();
@@ -51,9 +63,16 @@ export default function InventoryScreen() {
     // Filter logic
     const filteredInventory = useMemo(() => {
         return inventory.filter(item => {
-            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sku.toLowerCase().includes(searchQuery.toLowerCase());
+            const name = item.item || '';
+            const description = item.description || '';
+            const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) || description.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
-            const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+            
+            let derivedStatus = 'In Stock';
+            if (item.quantity_available <= 0) derivedStatus = 'Out of Stock';
+            else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
+
+            const matchesStatus = statusFilter === 'All' || derivedStatus === statusFilter;
             
             return matchesSearch && matchesCategory && matchesStatus;
         });
@@ -105,25 +124,11 @@ export default function InventoryScreen() {
                                 <input
                                     type="number"
                                     id="quantity"
-                                    name="quantity"
-                                    value={editingItem.quantity}
+                                    name="quantity_available"
+                                    value={editingItem.quantity_available || ''}
                                     onChange={handleEditFormChange}
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 />
-                            </div>
-                            <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select
-                                    id="status"
-                                    name="status"
-                                    value={editingItem.status}
-                                    onChange={handleEditFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                >
-                                    <option>In Stock</option>
-                                    <option>Low Stock</option>
-                                    <option>Out of Stock</option>
-                                </select>
                             </div>
                             <div className="flex justify-end space-x-4 pt-4">
                                 <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
@@ -154,9 +159,9 @@ export default function InventoryScreen() {
                                     </button>
                                     {procurementOpen && (
                                         <div className="absolute mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1">
-                                            <span onClick={() => navigate('/request')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Requisition</span>
-                                            <span onClick={() => navigate('/purchase-requests')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Purchase Requests</span>
-                                            <span onClick={() => navigate('/purchase-orders')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Purchase Orders</span>
+                                        <span onMouseDown={() => navigate('/request')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Requisition</span>
+                                        <span onMouseDown={() => navigate('/purchase-requests')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Purchase Requests</span>
+                                        <span onMouseDown={() => navigate('/purchase-orders')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Purchase Orders</span>
                                         </div>
                                     )}
                                 </div>
@@ -236,23 +241,42 @@ export default function InventoryScreen() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredInventory.length > 0 ? filteredInventory.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                                                Loading inventory...
+                                            </td>
+                                        </tr>
+                                    ) : error ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-10 text-center text-red-500">
+                                                Error loading inventory: {error}
+                                            </td>
+                                        </tr>
+                                    ) : filteredInventory.length > 0 ? filteredInventory.map((item) => {
+                                        let derivedStatus = 'In Stock';
+                                        if (item.quantity_available <= 0) derivedStatus = 'Out of Stock';
+                                        else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
+                                        
+                                        return (
+                                        <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                                                <div className="text-sm text-gray-500">{item.sku}</div>
+                                                <div className="text-sm font-medium text-gray-900">{item.item}</div>
+                                                <div className="text-sm text-gray-500">{item.description}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.quantity}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                                {item.quantity_available} {item.unit || ''}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(item.status)}`}>{item.status}</span>
+                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
                                                 <span className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                             </td>
                                         </tr>
-                                    )) : (
+                                    )}) : (
                                         <tr>
                                             <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
                                                 No items found matching your filters.
