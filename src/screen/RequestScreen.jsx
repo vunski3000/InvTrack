@@ -8,7 +8,7 @@ export default function RequestScreen() {
     const [name, setName] = useState('');
     const [designation, setDesignation] = useState('');
     const [requestDate, setRequestDate] = useState(new Date().toISOString().split('T')[0]);
-    const [items, setItems] = useState([{ itemNumber: '', itemDescription: '', quantity: '' }]);
+    const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
@@ -17,7 +17,7 @@ export default function RequestScreen() {
     };
 
     const handleAddItem = () => {
-        setItems([...items, { itemNumber: '', itemDescription: '', quantity: '' }]);
+        setItems([...items, { itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     };
 
     const handleRemoveItem = (index) => {
@@ -34,7 +34,7 @@ export default function RequestScreen() {
         setName('');
         setDesignation('');
         setRequestDate(new Date().toISOString().split('T')[0]);
-        setItems([{ itemNumber: '', itemDescription: '', quantity: '' }]);
+        setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     };
 
     return (
@@ -142,9 +142,10 @@ export default function RequestScreen() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Item Number</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Quantity</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
                                 </tr>
                             </thead>
@@ -159,6 +160,16 @@ export default function RequestScreen() {
                                                 required
                                                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                                                 placeholder="SKU or Number"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <input
+                                                type="text"
+                                                value={item.unit}
+                                                onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                                required
+                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                placeholder="e.g. pcs, boxes"
                                             />
                                         </td>
                                         <td className="px-4 py-3">

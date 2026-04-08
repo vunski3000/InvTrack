@@ -16,7 +16,7 @@ export default function InventoryScreen() {
     const fetchInventory = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase.from('inventory_procurement').select('*');
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
             if (error) throw error;
             setInventory(data || []);
         } catch (err) {
@@ -233,9 +233,11 @@ export default function InventoryScreen() {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name & SKU</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
@@ -243,13 +245,13 @@ export default function InventoryScreen() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
                                                 Loading inventory...
                                             </td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-10 text-center text-red-500">
+                                            <td colSpan="7" className="px-6 py-10 text-center text-red-500">
                                                 Error loading inventory: {error}
                                             </td>
                                         </tr>
@@ -260,13 +262,17 @@ export default function InventoryScreen() {
                                         
                                         return (
                                         <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{item.item_id}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">{item.item}</div>
                                                 <div className="text-sm text-gray-500">{item.description}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                                {item.quantity_available} {item.unit || ''}
+                                                {item.quantity_available}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {item.unit || ''}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
@@ -278,7 +284,7 @@ export default function InventoryScreen() {
                                         </tr>
                                     )}) : (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
                                                 No items found matching your filters.
                                             </td>
                                         </tr>
