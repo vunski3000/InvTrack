@@ -8,6 +8,7 @@ import DashboardScreen from './screen/DashboardScreen.jsx'
 import RequestScreen from './screen/RequestScreen.jsx'
 import PurchaseOrderScreen from './screen/PurchaseOrderScreen.jsx'
 import PurchaseRequestScreen from './screen/PurchaseRequestScreen.jsx'
+import PPMPScreen from './screen/PPMPScreen'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/request" element={<RequestScreen />} />
           <Route path="/purchase-orders" element={<PurchaseOrderScreen />} />
           <Route path="/purchase-requests" element={<PurchaseRequestScreen />} />
+          <Route path="/ppmp" element={<PPMPScreen />} />
         </Routes>
       </div>
     </Router>
