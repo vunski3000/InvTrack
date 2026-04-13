@@ -1,13 +1,149 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function PPMPScreen() {
     const navigate = useNavigate();
     const [procurementOpen, setProcurementOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
 
+    const [ppmps, setPpmps] = useState([
+        {
+            id: 'PPMP-2026-01',
+            name: 'SMAW NC I',
+            department: 'Vocational',
+            year: '2026',
+            status: 'Approved',
+            items: []
+        },
+        {
+            id: 'PPMP-2026-02',
+            name: 'MASONRY NC I',
+            department: 'Vocational',
+            year: '2026',
+            status: 'Pending',
+            items: []
+        }
+    ]);
+
+    const [selectedPPMP, setSelectedPPMP] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchInventoryForPPMP = async () => {
+            try {
+                // Fetch all inventory items for SMAW NC I
+                const { data, error } = await supabase
+                    .from('inventory_procurement')
+                    .select('*')
+                    .order('item_id', { ascending: true });
+                
+                if (error) throw error;
+
+                if (data) {
+                    // Map Supabase inventory data to match the PPMP modal's expected format
+                    const inventoryItems = data.map(item => ({
+                        itemNumber: item.item_id,
+                        itemDescription: item.description ? `${item.item} - ${item.description}` : item.item,
+                        quantity: item.quantity_available,
+                        unit: item.unit || ''
+                    }));
+
+                    setPpmps(prev => prev.map(p => 
+                        p.id === 'PPMP-2026-01' ? { ...p, items: inventoryItems } : p
+                    ));
+
+                    // Update the modal content if it is already open while data is loading
+                    setSelectedPPMP(prevSelected => {
+                        if (prevSelected && prevSelected.id === 'PPMP-2026-01') {
+                            return { ...prevSelected, items: inventoryItems };
+                        }
+                        return prevSelected;
+                    });
+                }
+            } catch (err) {
+                console.error("Error fetching inventory for PPMP:", err.message);
+            }
+        };
+
+        fetchInventoryForPPMP();
+    }, []);
+
+    const handleViewDetails = (ppmp) => {
+        setSelectedPPMP(ppmp);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedPPMP(null);
+    };
+
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
+            {/* Details Modal */}
+            {isModalOpen && selectedPPMP && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-full overflow-y-auto transform transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">PPMP Details: <span className="text-indigo-600">{selectedPPMP.id}</span></h3>
+                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                            <div>
+                                <p className="text-sm font-medium text-gray-500 mb-1">Project Name</p>
+                                <p className="font-semibold text-gray-900">{selectedPPMP.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
+                                <p className="font-semibold text-gray-900">{selectedPPMP.department}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500 mb-1">Year</p>
+                                <p className="font-semibold text-gray-900">{selectedPPMP.year}</p>
+                            </div>
+                        </div>
+
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
+                        {selectedPPMP.items.length > 0 ? (
+                            <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {selectedPPMP.items.map((item, index) => (
+                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-6">
+                                <p className="text-gray-500 font-medium">No items yet in the inventory for this project.</p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end">
+                            <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navigation */}
             <nav className="bg-indigo-700 text-white shadow-md z-10 shrink-0">
                 <div className="flex items-center justify-between px-6 lg:px-8 h-16">
@@ -54,20 +190,20 @@ export default function PPMPScreen() {
             </nav>
 
             {/* Main Content */}
-            <div className="flex-1 flex justify-center items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="bg-white p-8 rounded-xl shadow-md border border-gray-200 text-center w-full max-w-sm">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-6">
-                        <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">PPMP</h2>
-                    <p className="text-gray-500 mb-8">
-                        This module is currently in progress. Please check back later.
-                    </p>
-                    <button onClick={() => navigate('/dashboard')} className="w-full px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-150 ease-in-out font-medium shadow-sm">
-                        Return to Dashboard
-                    </button>
+            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
+                <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
+                    <h2 className="text-2xl font-bold text-gray-800">PPMP</h2>
+                </div>
+                
+                <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {ppmps.map((ppmp) => (
+                            <li key={ppmp.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(ppmp)}>
+                                <span className="text-lg font-medium text-gray-900">{ppmp.name}</span>
+                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         </div>
