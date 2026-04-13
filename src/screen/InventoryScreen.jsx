@@ -115,9 +115,8 @@ export default function InventoryScreen() {
                                     onChange={handleEditFormChange}
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 >
-                                    <option>Electronics</option>
-                                    <option>Furniture</option>
-                                    <option>Stationery</option>
+                                    <option>SMAW</option>
+                                    <option>MASONRY</option>
                                 </select>
                             </div>
                             <div>
@@ -215,9 +214,8 @@ export default function InventoryScreen() {
                                 onChange={(e) => setCategoryFilter(e.target.value)}
                             >
                                 <option value="All">All Categories</option>
-                                <option value="Electronics">Electronics</option>
-                                <option value="Furniture">Furniture</option>
-                                <option value="Stationery">Stationery</option>
+                                <option value="SMAW">SMAW</option>
+                                <option value="MASONRY">MASONRY</option>
                             </select>
                             <select 
                                 className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"

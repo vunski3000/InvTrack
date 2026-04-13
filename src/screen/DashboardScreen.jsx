@@ -78,9 +78,8 @@ export default function DashboardScreen() {
                                     onChange={handleEditFormChange}
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 >
-                                    <option>Electronics</option>
-                                    <option>Furniture</option>
-                                    <option>Stationery</option>
+                                    <option>SMAW</option>
+                                    <option>MASONRY</option>
                                 </select>
                             </div>
                             <div>
