@@ -28,6 +28,9 @@ export default function PPMPScreen() {
 
     const [selectedPPMP, setSelectedPPMP] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditingPPMP, setIsEditingPPMP] = useState(false);
+    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', status: 'Pending', items: [] });
 
     useEffect(() => {
         const fetchInventoryForPPMP = async () => {
@@ -77,7 +80,130 @@ export default function PPMPScreen() {
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedPPMP(null);
+        setIsEditingPPMP(false);
     };
+
+    const handleOpenCreateModal = () => {
+        setPpmpForm({
+            id: `PPMP-${new Date().getFullYear()}-${String(ppmps.length + 1).padStart(2, '0')}`,
+            name: '',
+            department: '',
+            year: new Date().getFullYear().toString(),
+            status: 'Pending',
+            items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const handleCreatePPMP = (e) => {
+        e.preventDefault();
+        setPpmps([ppmpForm, ...ppmps]);
+        setIsCreateModalOpen(false);
+    };
+
+    const handleEditPPMP = () => {
+        setPpmpForm(JSON.parse(JSON.stringify(selectedPPMP))); // Deep copy for editing
+        setIsEditingPPMP(true);
+    };
+
+    const handleSaveEdit = (e) => {
+        e.preventDefault();
+        setPpmps(prev => prev.map(p => p.id === ppmpForm.id ? ppmpForm : p));
+        setSelectedPPMP(ppmpForm);
+        setIsEditingPPMP(false);
+    };
+
+    const handleItemChange = (index, field, value) => {
+        const newItems = [...ppmpForm.items];
+        newItems[index][field] = value;
+        setPpmpForm({ ...ppmpForm, items: newItems });
+    };
+
+    const handleAddItem = () => {
+        setPpmpForm({ ...ppmpForm, items: [...ppmpForm.items, { itemNumber: '', itemDescription: '', quantity: '', unit: '' }] });
+    };
+
+    const handleRemoveItem = (index) => {
+        const newItems = ppmpForm.items.filter((_, i) => i !== index);
+        setPpmpForm({ ...ppmpForm, items: newItems });
+    };
+
+    const renderPPMPForm = (isCreate) => (
+        <form onSubmit={isCreate ? handleCreatePPMP : handleSaveEdit}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                    <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., SMAW NC I" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input type="text" required value={ppmpForm.department} onChange={e => setPpmpForm({...ppmpForm, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Vocational" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <input type="text" required value={ppmpForm.year} onChange={e => setPpmpForm({...ppmpForm, year: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 2026" />
+                </div>
+            </div>
+
+            <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg mb-4">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {ppmpForm.items.map((item, index) => (
+                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-4 py-3">
+                                    <input type="text" required value={item.itemNumber} onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="SKU/No." />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="text" required value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Unit" />
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {ppmpForm.items.length === 0 && (
+                            <tr>
+                                <td colSpan="5" className="px-4 py-6 text-center text-sm text-gray-500">No items added. Click "+ Add Row" to start.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="flex justify-start mb-8">
+                <button type="button" onClick={handleAddItem} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm">
+                    + Add Row
+                </button>
+            </div>
+
+            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+                <button type="button" onClick={() => { isCreate ? setIsCreateModalOpen(false) : setIsEditingPPMP(false); }} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
+                    Cancel
+                </button>
+                <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                    {isCreate ? 'Create PPMP' : 'Save Changes'}
+                </button>
+            </div>
+        </form>
+    );
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
@@ -86,60 +212,80 @@ export default function PPMPScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-full overflow-y-auto transform transition-all">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">PPMP Details: <span className="text-indigo-600">{selectedPPMP.id}</span></h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingPPMP ? `Edit PPMP: ${selectedPPMP.id}` : 'PPMP Details'}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Project Name</p>
-                                <p className="font-semibold text-gray-900">{selectedPPMP.name}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
-                                <p className="font-semibold text-gray-900">{selectedPPMP.department}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Year</p>
-                                <p className="font-semibold text-gray-900">{selectedPPMP.year}</p>
-                            </div>
-                        </div>
+                        {isEditingPPMP ? renderPPMPForm(false) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Project Name</p>
+                                        <p className="font-semibold text-gray-900">{selectedPPMP.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
+                                        <p className="font-semibold text-gray-900">{selectedPPMP.department}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Year</p>
+                                        <p className="font-semibold text-gray-900">{selectedPPMP.year}</p>
+                                    </div>
+                                </div>
 
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
-                        {selectedPPMP.items.length > 0 ? (
-                            <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {selectedPPMP.items.map((item, index) => (
-                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-6">
-                                <p className="text-gray-500 font-medium">No items yet in the inventory for this project.</p>
-                            </div>
+                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
+                                {selectedPPMP.items.length > 0 ? (
+                                    <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
+                                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {selectedPPMP.items.map((item, index) => (
+                                                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
+                                                        <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-6">
+                                        <p className="text-gray-500 font-medium">No items yet in the inventory for this project.</p>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-end space-x-4">
+                                    <button onClick={handleEditPPMP} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                        Edit
+                                    </button>
+                                    <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                                        Close
+                                    </button>
+                                </div>
+                            </>
                         )}
+                    </div>
+                </div>
+            )}
 
-                        <div className="flex justify-end">
-                            <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Close
-                            </button>
+            {/* Create Modal */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-full overflow-y-auto transform transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">Create New PPMP</h3>
+                            <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
+                        {renderPPMPForm(true)}
                     </div>
                 </div>
             )}
@@ -193,6 +339,9 @@ export default function PPMPScreen() {
             <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
                 <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
                     <h2 className="text-2xl font-bold text-gray-800">PPMP</h2>
+                    <button onClick={handleOpenCreateModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+                        + Create New PPMP
+                    </button>
                 </div>
                 
                 <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
