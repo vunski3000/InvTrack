@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function DashboardScreen() {
     const navigate = useNavigate();
@@ -15,6 +16,37 @@ export default function DashboardScreen() {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [units, setUnits] = useState([]);
+
+    useEffect(() => {
+        fetchCategories();
+        fetchUnits();
+    }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const { data, error } = await supabase.from('categories').select('*');
+            if (error) throw error;
+            if (data) {
+                setCategories(data.map(d => d.name || d.Name || d.category || d.Category || d.category_name || Object.values(d).find(v => typeof v === 'string')).filter(Boolean));
+            }
+        } catch (err) {
+            console.error("Error fetching categories:", err.message);
+        }
+    };
+
+    const fetchUnits = async () => {
+        try {
+            const { data, error } = await supabase.from('units').select('*');
+            if (error) throw error;
+            if (data) {
+                setUnits(data.map(d => d.name || d.Name || d.unit || d.Unit || Object.values(d).find(v => typeof v === 'string')).filter(Boolean));
+            }
+        } catch (err) {
+            console.error("Error fetching units:", err.message);
+        }
+    };
 
     const handleOpenEditModal = (item) => {
         setEditingItem({ ...item });
@@ -31,14 +63,71 @@ export default function DashboardScreen() {
         setEditingItem(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleUpdateItem = (e) => {
+    const handleUpdateItem = async (e) => {
         e.preventDefault();
-        setInventory(prevInventory =>
-            prevInventory.map(item =>
-                item.id === editingItem.id ? { ...editingItem, quantity: parseInt(editingItem.quantity, 10) || 0 } : item
-            )
-        );
-        handleCloseEditModal();
+        try {
+            const updatedQuantity = parseInt(editingItem.quantity, 10) || 0;
+
+            // Updates Supabase matching Dashboard's mock 'id' to 'item_id'
+            const { error } = await supabase
+                .from('inventory_procurement')
+                .update({
+                    category: editingItem.category,
+                    quantity_available: updatedQuantity,
+                    unit: editingItem.unit
+                })
+                .eq('item_id', editingItem.id);
+
+            if (error) throw error;
+
+            setInventory(prevInventory =>
+                prevInventory.map(item =>
+                    item.id === editingItem.id ? { ...editingItem, quantity: updatedQuantity } : item
+                )
+            );
+            handleCloseEditModal();
+        } catch (err) {
+            console.error("Error updating item:", err.message);
+            alert("Failed to update item.");
+        }
+    };
+
+    const handleAddCategory = async () => {
+        const newCategory = window.prompt("Enter new category name:");
+        if (newCategory && newCategory.trim() !== '') {
+            const upperCategory = newCategory.trim().toUpperCase();
+            if (!categories.includes(upperCategory)) {
+                try {
+                    const { error } = await supabase.from('categories').insert([{ name: upperCategory }]);
+                    if (error) throw error;
+                    setCategories([...categories, upperCategory]);
+                } catch (err) {
+                    console.error("Error adding category:", err.message);
+                    alert("Failed to add category.");
+                    return;
+                }
+            }
+            setEditingItem(prev => ({ ...prev, category: upperCategory }));
+        }
+    };
+
+    const handleAddUnit = async () => {
+        const newUnit = window.prompt("Enter new unit name:");
+        if (newUnit && newUnit.trim() !== '') {
+            const lowerUnit = newUnit.trim().toLowerCase();
+            if (!units.includes(lowerUnit)) {
+                try {
+                    const { error } = await supabase.from('units').insert([{ name: lowerUnit }]);
+                    if (error) throw error;
+                    setUnits([...units, lowerUnit]);
+                } catch (err) {
+                    console.error("Error adding unit:", err.message);
+                    alert("Failed to add unit.");
+                    return;
+                }
+            }
+            setEditingItem(prev => ({ ...prev, unit: lowerUnit }));
+        }
     };
 
     // Helper function to color-code status badges
@@ -71,16 +160,26 @@ export default function DashboardScreen() {
                         <form onSubmit={handleUpdateItem} className="space-y-6">
                             <div>
                                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <select
-                                    id="category"
-                                    name="category"
-                                    value={editingItem.category}
-                                    onChange={handleEditFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                >
-                                    <option>SMAW</option>
-                                    <option>MASONRY</option>
-                                </select>
+                                <div className="flex space-x-2">
+                                    <select
+                                        id="category"
+                                        name="category"
+                                        value={editingItem.category}
+                                        onChange={handleEditFormChange}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        {categories.map((cat) => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddCategory}
+                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                    >
+                                        + Add
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
@@ -92,6 +191,30 @@ export default function DashboardScreen() {
                                     onChange={handleEditFormChange}
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 />
+                            </div>
+                            <div>
+                                <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                <div className="flex space-x-2">
+                                    <select
+                                        id="unit"
+                                        name="unit"
+                                        value={editingItem.unit || ''}
+                                        onChange={handleEditFormChange}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="" disabled>Select a unit</option>
+                                        {units.map((u) => (
+                                            <option key={u} value={u}>{u}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddUnit}
+                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                    >
+                                        + Add
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -166,11 +289,6 @@ export default function DashboardScreen() {
                 {/* Top Header */}
                 <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
                     <h2 className="text-xl font-semibold text-gray-800">Dashboard Overview</h2>
-                    <div className="flex items-center space-x-4">
-                        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                            + Add New Item
-                        </button>
-                    </div>
                 </header>
 
                 {/* Scrollable Content Area */}
