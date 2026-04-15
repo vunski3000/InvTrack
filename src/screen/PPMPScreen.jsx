@@ -30,6 +30,7 @@ export default function PPMPScreen() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditingPPMP, setIsEditingPPMP] = useState(false);
+    const [units, setUnits] = useState([]);
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', status: 'Pending', items: [] });
 
     useEffect(() => {
@@ -49,7 +50,7 @@ export default function PPMPScreen() {
                         itemNumber: item.item_id,
                         itemDescription: item.description ? `${item.item} - ${item.description}` : item.item,
                         quantity: item.quantity_available,
-                        unit: item.unit || ''
+                        unit: item.unit_name || item.unit || ''
                     }));
 
                     setPpmps(prev => prev.map(p => 
@@ -69,7 +70,20 @@ export default function PPMPScreen() {
             }
         };
 
+        const fetchUnits = async () => {
+            try {
+                const { data, error } = await supabase.from('units').select('*');
+                if (error) throw error;
+                if (data) {
+                    setUnits(data.map(d => d.name || d.Name || d.unit || d.Unit || Object.values(d).find(v => typeof v === 'string')).filter(Boolean));
+                }
+            } catch (err) {
+                console.error("Error fetching units:", err.message);
+            }
+        };
+
         fetchInventoryForPPMP();
+        fetchUnits();
     }, []);
 
     const handleViewDetails = (ppmp) => {
@@ -128,6 +142,25 @@ export default function PPMPScreen() {
         setPpmpForm({ ...ppmpForm, items: newItems });
     };
 
+    const handleAddUnit = async (index) => {
+        const newUnit = window.prompt("Enter new unit name:");
+        if (newUnit && newUnit.trim() !== '') {
+            const lowerUnit = newUnit.trim().toLowerCase();
+            if (!units.includes(lowerUnit)) {
+                try {
+                    const { error } = await supabase.from('units').insert([{ name: lowerUnit }]);
+                    if (error) throw error;
+                    setUnits([...units, lowerUnit]);
+                } catch (err) {
+                    console.error("Error adding unit:", err.message);
+                    alert("Failed to add unit.");
+                    return;
+                }
+            }
+            handleItemChange(index, 'unit', lowerUnit);
+        }
+    };
+
     const renderPPMPForm = (isCreate) => (
         <form onSubmit={isCreate ? handleCreatePPMP : handleSaveEdit}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
@@ -170,7 +203,24 @@ export default function PPMPScreen() {
                                     <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="text" required value={item.unit} onChange={(e) => handleItemChange(index, 'unit', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Unit" />
+                                    <div className="flex space-x-2">
+                                        <select
+                                            required
+                                            value={item.unit}
+                                            onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        >
+                                            <option value="" disabled>Unit</option>
+                                            {units.map((u) => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleAddUnit(index)}
+                                            className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                        >+ Add</button>
+                                    </div>
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                     <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
