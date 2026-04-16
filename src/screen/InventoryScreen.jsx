@@ -315,9 +315,9 @@ export default function InventoryScreen() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 lg:p-8">
+            <main className="flex-1 flex flex-col overflow-hidden bg-gray-50 p-6 lg:p-8 min-h-0">
                     {/* Filters and Search Bar */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
                         <div className="w-full sm:w-1/3">
                             <input 
                                 type="text" 
@@ -352,10 +352,10 @@ export default function InventoryScreen() {
                     </div>
 
                     {/* Inventory Table Section */}
-                    <div className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                <div className="bg-white shadow-sm rounded-xl border border-gray-100 flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+                        <table className="min-w-full divide-y divide-gray-200 relative">
+                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>

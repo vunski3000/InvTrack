@@ -162,8 +162,8 @@ export default function PPMPScreen() {
     };
 
     const renderPPMPForm = (isCreate) => (
-        <form onSubmit={isCreate ? handleCreatePPMP : handleSaveEdit}>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+        <form onSubmit={isCreate ? handleCreatePPMP : handleSaveEdit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
                     <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., SMAW NC I" />
@@ -178,10 +178,10 @@ export default function PPMPScreen() {
                 </div>
             </div>
 
-            <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
-            <div className="overflow-x-auto border border-gray-200 rounded-lg mb-4">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
+            <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-4 min-h-0">
+                <table className="min-w-full divide-y divide-gray-200 relative">
+                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Item Number</th>
                             <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Item Description</th>
@@ -238,13 +238,13 @@ export default function PPMPScreen() {
                 </table>
             </div>
 
-            <div className="flex justify-start mb-8">
+            <div className="flex justify-start mb-8 shrink-0">
                 <button type="button" onClick={handleAddItem} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm">
                     + Add Row
                 </button>
             </div>
 
-            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 shrink-0">
                 <button type="button" onClick={() => { isCreate ? setIsCreateModalOpen(false) : setIsEditingPPMP(false); }} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
                     Cancel
                 </button>
@@ -260,15 +260,15 @@ export default function PPMPScreen() {
             {/* Details Modal */}
             {isModalOpen && selectedPPMP && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-full overflow-y-auto transform transition-all">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
                             <h3 className="text-2xl font-bold text-gray-800">{isEditingPPMP ? `Edit PPMP: ${selectedPPMP.id}` : 'PPMP Details'}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
                         {isEditingPPMP ? renderPPMPForm(false) : (
-                            <>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                                     <div className="md:col-span-2">
                                         <p className="text-sm font-medium text-gray-500 mb-1">Project Name</p>
                                         <p className="font-semibold text-gray-900">{selectedPPMP.name}</p>
@@ -283,11 +283,11 @@ export default function PPMPScreen() {
                                     </div>
                                 </div>
 
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
+                                <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
                                 {selectedPPMP.items.length > 0 ? (
-                                    <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50">
+                                    <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
+                                        <table className="min-w-full divide-y divide-gray-200 relative">
+                                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                                 <tr>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Item Number</th>
                                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
@@ -308,12 +308,12 @@ export default function PPMPScreen() {
                                         </table>
                                     </div>
                                 ) : (
-                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-6">
+                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center mb-6 shrink-0">
                                         <p className="text-gray-500 font-medium">No items yet in the inventory for this project.</p>
                                     </div>
                                 )}
 
-                                <div className="flex justify-end space-x-4">
+                                <div className="flex justify-end space-x-4 shrink-0 mt-auto pt-4 border-t border-gray-200">
                                     <button onClick={handleEditPPMP} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
                                         Edit
                                     </button>
@@ -321,7 +321,7 @@ export default function PPMPScreen() {
                                         Close
                                     </button>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -330,8 +330,8 @@ export default function PPMPScreen() {
             {/* Create Modal */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-full overflow-y-auto transform transition-all">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
                             <h3 className="text-2xl font-bold text-gray-800">Create New PPMP</h3>
                             <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>

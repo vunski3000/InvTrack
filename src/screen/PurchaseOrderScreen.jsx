@@ -63,14 +63,14 @@ export default function PurchaseOrderScreen() {
             {/* Details Modal */}
             {isModalOpen && selectedOrder && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-full overflow-y-auto transform transition-all">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
                             <h3 className="text-2xl font-bold text-gray-800">Purchase Order Details: <span className="text-indigo-600">{selectedOrder.id}</span></h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
                         {/* Requester Info Read-Only */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                             <div>
                                 <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
                                 <p className="font-semibold text-gray-900">{selectedOrder.requesterName}</p>
@@ -86,10 +86,10 @@ export default function PurchaseOrderScreen() {
                         </div>
 
                         {/* Items Table Read-Only */}
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3">Requested Items</h4>
-                        <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
+                        <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
+                            <table className="min-w-full divide-y divide-gray-200 relative">
+                                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
                                         <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
@@ -110,7 +110,7 @@ export default function PurchaseOrderScreen() {
                             </table>
                         </div>
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end shrink-0 pt-4 border-t border-gray-200 mt-auto">
                             <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
                                 Close
                             </button>
@@ -165,15 +165,15 @@ export default function PurchaseOrderScreen() {
             </nav>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
+            <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
+                <div className="w-full max-w-6xl mx-auto mb-6 flex justify-between items-center mt-2 shrink-0">
                     <h2 className="text-2xl font-bold text-gray-800">Purchase Orders</h2>
                 </div>
                 
-                <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                <div className="bg-white shadow-sm rounded-xl border border-gray-100 mx-auto w-full max-w-6xl flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+                        <table className="min-w-full divide-y divide-gray-200 relative">
+                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PO Number</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requester</th>

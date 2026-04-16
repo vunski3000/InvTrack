@@ -86,13 +86,13 @@ export default function PurchaseRequestScreen() {
             </nav>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-5xl border border-gray-100 my-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Purchase Request</h2>
-                    <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
+                <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-5xl mx-auto border border-gray-100 flex flex-col flex-1 min-h-0 my-0">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center shrink-0">Create Purchase Request</h2>
+                    <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 space-y-5">
                         
                         {/* Requester Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-2 shrink-0">
                             <div>
                                 <label htmlFor="requesterName" className="block text-sm font-medium text-gray-700 mb-1">Requester Name</label>
                                 <input
@@ -132,9 +132,9 @@ export default function PurchaseRequestScreen() {
                         </div>
                     
                         {/* Dynamic Items Table */}
-                        <div className="mt-8 overflow-x-auto border border-gray-200 rounded-lg">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                        <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg min-h-0 mt-0">
+                            <table className="min-w-full divide-y divide-gray-200 relative">
+                                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
                                         <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
@@ -206,7 +206,7 @@ export default function PurchaseRequestScreen() {
                         </div>
 
                         {/* Actions */}
-                        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between">
+                        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between shrink-0">
                             <button
                                 type="button"
                                 onClick={handleAddItem}
