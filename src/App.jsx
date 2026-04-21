@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LoginScreen from './screen/LoginScreen.jsx'
+import AdminLoginScreen from './screen/AdminLoginScreen.jsx'
+import StaffLoginScreen from './screen/StaffLoginScreen.jsx'
 import SignupScreen from './screen/SignupScreen.jsx'
 import HomeScreen from './screen/HomeScreen.jsx'
 import InventoryScreen from './screen/InventoryScreen.jsx'
@@ -17,7 +18,8 @@ function App() {
       <div className="flex-1 min-h-screen">
         <Routes>
           <Route path="/" element={<HomeScreen />} />
-          <Route path="/login" element={<LoginScreen />} />
+          <Route path="/login" element={<AdminLoginScreen />} />
+          <Route path="/staff-login" element={<StaffLoginScreen />} />
           <Route path="/signup" element={<SignupScreen />} />
           <Route path="/home" element={<HomeScreen />} />
           <Route path="/dashboard" element={<DashboardScreen />} />
