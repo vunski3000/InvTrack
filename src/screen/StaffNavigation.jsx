@@ -12,6 +12,11 @@ export default function StaffNavigation() {
         ? "px-3 py-2 rounded-md text-sm font-medium bg-indigo-800 text-white transition-colors cursor-pointer"
         : "px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer";
 
+    // Helper to dynamically highlight procurement dropdown items based on current route
+    const isDropdownItemActive = (path) => location.pathname === path
+        ? "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer font-medium bg-gray-50"
+        : "block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer";
+
     return (
         <nav className="bg-indigo-700 text-white shadow-md z-20 relative shrink-0">
             <div className="flex items-center justify-between px-6 lg:px-8 h-16">
@@ -22,14 +27,18 @@ export default function StaffNavigation() {
                             <span onClick={() => navigate('/staff-dashboard')} className={isActiveTab(['/staff-dashboard'])}>
                                 Dashboard
                             </span>
+                            <span onClick={() => navigate('/staff-inventory')} className={isActiveTab(['/staff-inventory'])}>
+                                Inventory
+                            </span>
                             <div className="relative">
                                 <button onClick={() => setProcurementOpen(!procurementOpen)} onBlur={() => setTimeout(() => setProcurementOpen(false), 150)} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer flex items-center">
                                     Procurement
                                     <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {procurementOpen && (
-                                    <div className="absolute mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
-                                        <span onMouseDown={() => navigate('/request')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Requisition</span>
+                                    <div className="absolute mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
+                                        <span onMouseDown={() => navigate('/request')} className={isDropdownItemActive('/request')}>Requisition</span>
+                                        <span onMouseDown={() => navigate('/staff-ppmp')} className={isDropdownItemActive('/staff-ppmp')}>PPMP (Project Procurement Monitoring Plan)</span>
                                     </div>
                                 )}
                             </div>

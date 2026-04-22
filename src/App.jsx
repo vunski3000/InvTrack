@@ -13,6 +13,8 @@ import PPMPScreen from './screen/PPMPScreen'
 import NewItemScreen from './screen/NewItemScreen.jsx'
 import StaffNavigation from './screen/StaffNavigation.jsx'
 import StaffDashboardScreen from './screen/StaffDashboardScreen.jsx'
+import StaffInventoryScreen from './screen/StaffInventoryScreen.jsx'
+import StaffPPMPScreen from './screen/StaffPPMPScreen.jsx'
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
           <Route path="/ppmp" element={<PPMPScreen />} />
           <Route path="/new-item" element={<NewItemScreen />} />
           <Route path="/staff-dashboard" element={<StaffDashboardScreen />} />
+          <Route path="/staff-inventory" element={<StaffInventoryScreen />} />
+          <Route path="/staff-ppmp" element={<StaffPPMPScreen />} />
         </Routes>
       </div>
     </Router>
