@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from './Navigation';
+import StaffNavigation from './StaffNavigation';
 
 export default function RequestScreen() {
     const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function RequestScreen() {
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
             {/* Top Navigation */}
-            <Navigation />
+            <StaffNavigation />
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">

@@ -22,7 +22,7 @@ export default function StaffLoginScreen() {
         setError('');
         // TODO: Add staff authentication logic here
         console.log('Staff Login attempt:', { email, password });
-        navigate('/dashboard'); // Update this path if staff has a different starting dashboard
+        navigate('/staff-dashboard'); // Update this path if staff has a different starting dashboard
     };
 
     return (
