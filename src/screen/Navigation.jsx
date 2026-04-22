@@ -37,6 +37,7 @@ export default function Navigation() {
                                 </button>
                                 {procurementOpen && (
                                     <div className="absolute mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
+                                        <span onMouseDown={() => navigate('/admin-requests')} className={isDropdownItemActive('/admin-requests')}>Requests</span>
                                         <span onMouseDown={() => navigate('/purchase-requests')} className={isDropdownItemActive('/purchase-requests')}>Purchase Requests</span>
                                         <span onMouseDown={() => navigate('/purchase-orders')} className={isDropdownItemActive('/purchase-orders')}>Purchase Orders</span>
                                         <span onMouseDown={() => navigate('/ppmp')} className={isDropdownItemActive('/ppmp')}>PPMP (Project Procurement Monitoring Plan)</span>
