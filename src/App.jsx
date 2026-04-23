@@ -9,6 +9,7 @@ import DashboardScreen from './screen/DashboardScreen.jsx'
 import RequestScreen from './screen/RequestScreen.jsx'
 import PurchaseOrderScreen from './screen/PurchaseOrderScreen.jsx'
 import PurchaseRequestScreen from './screen/PurchaseRequestScreen.jsx'
+import AdminRequestScreen from './screen/AdminRequestScreen.jsx'
 import PPMPScreen from './screen/PPMPScreen'
 import NewItemScreen from './screen/NewItemScreen.jsx'
 import StaffNavigation from './screen/StaffNavigation.jsx'
@@ -31,6 +32,7 @@ function App() {
           <Route path="/request" element={<RequestScreen />} />
           <Route path="/purchase-orders" element={<PurchaseOrderScreen />} />
           <Route path="/purchase-requests" element={<PurchaseRequestScreen />} />
+          <Route path="/admin-requests" element={<AdminRequestScreen />} />
           <Route path="/ppmp" element={<PPMPScreen />} />
           <Route path="/new-item" element={<NewItemScreen />} />
           <Route path="/staff-dashboard" element={<StaffDashboardScreen />} />

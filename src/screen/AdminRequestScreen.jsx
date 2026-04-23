@@ -147,46 +147,29 @@ export default function AdminRequestScreen() {
             <Navigation />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
-                <div className="w-full max-w-6xl mx-auto mb-6 flex justify-between items-center mt-2 shrink-0">
+            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
+                <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
                     <h2 className="text-2xl font-bold text-gray-800">Staff Requisitions</h2>
                 </div>
                 
-                <div className="bg-white shadow-sm rounded-xl border border-gray-100 mx-auto w-full max-w-6xl flex flex-col flex-1 min-h-0 overflow-hidden">
-                    <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-                        <table className="min-w-full divide-y divide-gray-200 relative">
-                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request ID</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requester</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {requests.map((req) => (
-                                    <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{req.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.department}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.requestDate}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(req.status)}`}>
-                                                {req.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleViewDetails(req)} className="text-indigo-600 hover:text-indigo-900 transition-colors">
-                                                View Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
+                    <ul className="divide-y divide-gray-200">
+                        {requests.map((req) => (
+                            <li key={req.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(req)}>
+                                <div className="flex flex-col">
+                                    <span className="text-lg font-medium text-gray-900">{req.id} - {req.name}</span>
+                                    <span className="text-sm text-gray-500">{req.department} Department • {req.designation}</span>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-sm text-gray-500 hidden sm:block">{req.requestDate}</span>
+                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(req.status)}`}>
+                                        {req.status}
+                                    </span>
+                                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             </div>
         </div>
