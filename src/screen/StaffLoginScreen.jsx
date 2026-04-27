@@ -98,6 +98,13 @@ export default function StaffLoginScreen() {
                             </button>
                         </div>
                     </form>
+
+                    <p className="text-center text-sm text-gray-500 mt-8">
+                        Don't have an account?{' '}
+                        <span onClick={() => navigate('/signup')} className="font-semibold text-indigo-600 hover:text-indigo-500 cursor-pointer hover:underline">
+                            Sign up now
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
