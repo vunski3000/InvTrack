@@ -31,7 +31,7 @@ export default function DashboardScreen() {
 
     const fetchInventory = async () => {
         try {
-            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: false });
             if (error) throw error;
             setInventory(data || []);
         } catch (err) {

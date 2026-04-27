@@ -57,7 +57,7 @@ export default function InventoryScreen() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [newItem, setNewItem] = useState({ item_id: '', item: '', description: '', category: '', quantity_available: '', unit: '' });
+    const [newItems, setNewItems] = useState([{ item: '', description: '', category: '', quantity_available: '', unit: '' }]);
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
 
@@ -76,25 +76,8 @@ export default function InventoryScreen() {
         setEditingItem(prev => ({ ...prev, [name]: value }));
     };
 
-    const generateSKU = () => {
-        const prefix = "ITM-";
-        let maxId = 0;
-        inventory.forEach(item => {
-            const idStr = String(item.item_id || '');
-            // Safely extract the trailing numbers from any SKU format to avoid duplicates
-            const match = idStr.match(/\d+$/);
-            if (match) {
-                const num = parseInt(match[0], 10);
-                if (!isNaN(num) && num > maxId) {
-                    maxId = num;
-                }
-            }
-        });
-        return `${prefix}${String(maxId + 1).padStart(4, '0')}`;
-    };
-
     const handleOpenAddModal = () => {
-        setNewItem({ item_id: generateSKU(), item: '', description: '', category: '', quantity_available: '', unit: '' });
+        setNewItems([{ item: '', description: '', category: '', quantity_available: '', unit: '' }]);
         setIsAddModalOpen(true);
     };
 
@@ -102,23 +85,36 @@ export default function InventoryScreen() {
         setIsAddModalOpen(false);
     };
 
-    const handleAddFormChange = (e) => {
-        const { name, value } = e.target;
-        setNewItem(prev => ({ ...prev, [name]: value }));
+    const handleAddFormChange = (index, field, value) => {
+        const updatedItems = [...newItems];
+        updatedItems[index][field] = value;
+        setNewItems(updatedItems);
+    };
+
+    const handleAddRow = () => {
+        setNewItems([...newItems, { item: '', description: '', category: '', quantity_available: '', unit: '' }]);
+    };
+
+    const handleRemoveRow = (index) => {
+        const updatedItems = newItems.filter((_, i) => i !== index);
+        setNewItems(updatedItems);
     };
 
     const handleCreateItem = async (e) => {
         e.preventDefault();
+        if (newItems.length === 0) return;
         try {
-            const { data, error } = await supabase
+            const itemsToInsert = newItems.map(item => ({
+                item: item.item,
+                description: item.description,
+                category_name: item.category,
+                quantity_available: parseInt(item.quantity_available, 10) || 0,
+                unit_name: item.unit
+            }));
+
+            const { error } = await supabase
                 .from('inventory_procurement')
-                .insert([{
-                    item: newItem.item,
-                    description: newItem.description,
-                    category_name: newItem.category,
-                    quantity_available: parseInt(newItem.quantity_available, 10) || 0,
-                    unit_name: newItem.unit
-                }]);
+                .insert(itemsToInsert);
 
             if (error) throw error;
 
@@ -126,7 +122,7 @@ export default function InventoryScreen() {
             handleCloseAddModal();
         } catch (err) {
             console.error("Error creating item:", err.message);
-            alert("Failed to create item: " + err.message);
+            alert("Failed to create items: " + err.message);
         }
     };
 
@@ -158,7 +154,7 @@ export default function InventoryScreen() {
         }
     };
 
-    const handleAddCategory = async (isNew = false) => {
+    const handleAddCategory = async (index = null) => {
         const newCategory = window.prompt("Enter new category name:");
         if (newCategory && newCategory.trim() !== '') {
             const upperCategory = newCategory.trim().toUpperCase();
@@ -178,15 +174,17 @@ export default function InventoryScreen() {
                 }
                 setCategories(prev => [...prev, upperCategory]);
             }
-            if (isNew) {
-                setNewItem(prev => ({ ...prev, category: finalCategory }));
+            if (index !== null) {
+                const updatedItems = [...newItems];
+                updatedItems[index].category = finalCategory;
+                setNewItems(updatedItems);
             } else {
                 setEditingItem(prev => ({ ...prev, category: finalCategory, category_name: finalCategory }));
             }
         }
     };
 
-    const handleAddUnit = async (isNew = false) => {
+    const handleAddUnit = async (index = null) => {
         const newUnit = window.prompt("Enter new unit name:");
         if (newUnit && newUnit.trim() !== '') {
             const lowerUnit = newUnit.trim().toLowerCase();
@@ -206,8 +204,10 @@ export default function InventoryScreen() {
                 }
                 setUnits(prev => [...prev, lowerUnit]);
             }
-            if (isNew) {
-                setNewItem(prev => ({ ...prev, unit: finalUnit }));
+            if (index !== null) {
+                const updatedItems = [...newItems];
+                updatedItems[index].unit = finalUnit;
+                setNewItems(updatedItems);
             } else {
                 setEditingItem(prev => ({ ...prev, unit: finalUnit, unit_name: finalUnit }));
             }
@@ -296,7 +296,7 @@ export default function InventoryScreen() {
                                     </select>
                                     <button
                                         type="button"
-                                        onClick={() => handleAddCategory(false)}
+                                        onClick={() => handleAddCategory()}
                                         className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
                                     >
                                         + Add
@@ -331,7 +331,7 @@ export default function InventoryScreen() {
                                     </select>
                                     <button
                                         type="button"
-                                        onClick={() => handleAddUnit(false)}
+                                        onClick={() => handleAddUnit()}
                                         className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
                                     >
                                         + Add
@@ -349,89 +349,84 @@ export default function InventoryScreen() {
 
             {/* Add Item Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300">
-                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">Add New Item</h3>
-                            <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
+                            <h3 className="text-2xl font-bold text-gray-800">Add New Items</h3>
+                            <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
-                        <form onSubmit={handleCreateItem} className="space-y-6">
-                            <div>
-                                <label htmlFor="newItemId" className="block text-sm font-medium text-gray-700 mb-1">Item Number & SKU</label>
-                                <input
-                                    type="text"
-                                    id="newItemId"
-                                    name="item_id"
-                                    required
-                                    readOnly
-                                    value={newItem.item_id}
-                                    onChange={handleAddFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 text-gray-500 cursor-not-allowed"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="newItem" className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                                <input
-                                    type="text"
-                                    id="newItem"
-                                    name="item"
-                                    required
-                                    value={newItem.item}
-                                    onChange={handleAddFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="newDescription" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                                <input
-                                    type="text"
-                                    id="newDescription"
-                                    name="description"
-                                    value={newItem.description}
-                                    onChange={handleAddFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="newCategory" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                                <div className="flex space-x-2">
-                                    <select
-                                        id="newCategory"
-                                        name="category"
-                                        required
-                                        value={newItem.category}
-                                        onChange={handleAddFormChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    >
-                                        <option value="" disabled>Select a category</option>
-                                        {categories.map((cat) => (
-                                            <option key={cat} value={cat}>{cat}</option>
+                        <form onSubmit={handleCreateItem} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                            <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-4 min-h-0">
+                                <table className="min-w-full divide-y divide-gray-200 relative">
+                                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                                        <tr>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Name</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Description</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Category</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Initial Qty</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-auto">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {newItems.map((item, index) => (
+                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <input type="text" required value={item.item} onChange={(e) => handleAddFormChange(index, 'item', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Item Name" />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <input type="text" value={item.description} onChange={(e) => handleAddFormChange(index, 'description', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex space-x-2">
+                                                        <select required value={item.category} onChange={(e) => handleAddFormChange(index, 'category', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                                            <option value="" disabled>Category</option>
+                                                            {categories.map((cat) => (
+                                                                <option key={cat} value={cat}>{cat}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button type="button" onClick={() => handleAddCategory(index)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+ Add</button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <input type="number" required min="0" value={item.quantity_available} onChange={(e) => handleAddFormChange(index, 'quantity_available', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex space-x-2">
+                                                        <select required value={item.unit} onChange={(e) => handleAddFormChange(index, 'unit', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                                            <option value="" disabled>Unit</option>
+                                                            {units.map((u) => (
+                                                                <option key={u} value={u}>{u}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button type="button" onClick={() => handleAddUnit(index)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+ Add</button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button type="button" onClick={() => handleRemoveRow(index)} className="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                </td>
+                                            </tr>
                                         ))}
-                                    </select>
-                                    <button type="button" onClick={() => handleAddCategory(true)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">
-                                        + Add
-                                    </button>
-                                </div>
+                                        {newItems.length === 0 && (
+                                            <tr>
+                                                <td colSpan="6" className="px-4 py-6 text-center text-sm text-gray-500">No items added. Click "+ Add Row" to start.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="newQuantity" className="block text-sm font-medium text-gray-700 mb-1">Initial Qty</label>
-                                    <input type="number" id="newQuantity" name="quantity_available" required min="0" value={newItem.quantity_available} onChange={handleAddFormChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                                </div>
-                                <div>
-                                    <label htmlFor="newUnit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                                    <div className="flex space-x-2">
-                                        <select id="newUnit" name="unit" required value={newItem.unit} onChange={handleAddFormChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                            <option value="" disabled>Select...</option>
-                                            {units.map((u) => (<option key={u} value={u}>{u}</option>))}
-                                        </select>
-                                        <button type="button" onClick={() => handleAddUnit(true)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+</button>
-                                    </div>
-                                </div>
+
+                            <div className="flex justify-start mb-4 shrink-0">
+                                <button type="button" onClick={handleAddRow} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm">
+                                    + Add Row
+                                </button>
                             </div>
-                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100">
-                                <button type="button" onClick={handleCloseAddModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">Create Item</button>
+
+                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100 shrink-0">
+                                <button type="button" onClick={handleCloseAddModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Cancel</button>
+                                <button type="submit" disabled={newItems.length === 0} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Save Items</button>
                             </div>
                         </form>
                     </div>
