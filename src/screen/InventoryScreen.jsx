@@ -56,6 +56,8 @@ export default function InventoryScreen() {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newItem, setNewItem] = useState({ item_id: '', item: '', description: '', category: '', quantity_available: '', unit: '' });
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
 
@@ -74,6 +76,60 @@ export default function InventoryScreen() {
         setEditingItem(prev => ({ ...prev, [name]: value }));
     };
 
+    const generateSKU = () => {
+        const prefix = "ITM-";
+        let maxId = 0;
+        inventory.forEach(item => {
+            const idStr = String(item.item_id || '');
+            // Safely extract the trailing numbers from any SKU format to avoid duplicates
+            const match = idStr.match(/\d+$/);
+            if (match) {
+                const num = parseInt(match[0], 10);
+                if (!isNaN(num) && num > maxId) {
+                    maxId = num;
+                }
+            }
+        });
+        return `${prefix}${String(maxId + 1).padStart(4, '0')}`;
+    };
+
+    const handleOpenAddModal = () => {
+        setNewItem({ item_id: generateSKU(), item: '', description: '', category: '', quantity_available: '', unit: '' });
+        setIsAddModalOpen(true);
+    };
+
+    const handleCloseAddModal = () => {
+        setIsAddModalOpen(false);
+    };
+
+    const handleAddFormChange = (e) => {
+        const { name, value } = e.target;
+        setNewItem(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCreateItem = async (e) => {
+        e.preventDefault();
+        try {
+            const { data, error } = await supabase
+                .from('inventory_procurement')
+                .insert([{
+                    item: newItem.item,
+                    description: newItem.description,
+                    category_name: newItem.category,
+                    quantity_available: parseInt(newItem.quantity_available, 10) || 0,
+                    unit_name: newItem.unit
+                }]);
+
+            if (error) throw error;
+
+            await fetchInventory(); // Securely refresh the list from the database
+            handleCloseAddModal();
+        } catch (err) {
+            console.error("Error creating item:", err.message);
+            alert("Failed to create item: " + err.message);
+        }
+    };
+
     const handleUpdateItem = async (e) => {
         e.preventDefault();
         try {
@@ -82,9 +138,9 @@ export default function InventoryScreen() {
             const { error } = await supabase
                 .from('inventory_procurement')
                 .update({
-                    category: editingItem.category || editingItem.category_name,
+                    category_name: editingItem.category || editingItem.category_name,
                     quantity_available: updatedQuantity,
-                    unit: editingItem.unit || editingItem.unit_name
+                    unit_name: editingItem.unit || editingItem.unit_name
                 })
                 .eq('item_id', editingItem.item_id);
 
@@ -98,45 +154,79 @@ export default function InventoryScreen() {
             handleCloseEditModal();
         } catch (err) {
             console.error("Error updating item:", err.message);
-            alert("Failed to update item.");
+            alert("Failed to update item: " + err.message);
         }
     };
 
-    const handleAddCategory = async () => {
+    const handleAddCategory = async (isNew = false) => {
         const newCategory = window.prompt("Enter new category name:");
         if (newCategory && newCategory.trim() !== '') {
             const upperCategory = newCategory.trim().toUpperCase();
-            if (!categories.includes(upperCategory)) {
+            
+            const existingCat = categories.find(c => c.toUpperCase() === upperCategory);
+            const finalCategory = existingCat || upperCategory;
+
+            if (!existingCat) {
                 try {
-                    const { error } = await supabase.from('categories').insert([{ name: upperCategory }]);
-                    if (error) throw error;
-                    setCategories([...categories, upperCategory]);
+                    const { error } = await supabase.from('categories').insert([{ category_name: upperCategory }]);
+                    if (error) {
+                        console.warn("Note: Could not save category to DB:", error.message);
+                        alert("Warning: Could not save category permanently.\nReason: " + error.message);
+                    }
                 } catch (err) {
                     console.error("Error adding category:", err.message);
-                    alert("Failed to add category.");
-                    return;
                 }
+                setCategories(prev => [...prev, upperCategory]);
             }
-            setEditingItem(prev => ({ ...prev, category: upperCategory, category_name: upperCategory }));
+            if (isNew) {
+                setNewItem(prev => ({ ...prev, category: finalCategory }));
+            } else {
+                setEditingItem(prev => ({ ...prev, category: finalCategory, category_name: finalCategory }));
+            }
         }
     };
 
-    const handleAddUnit = async () => {
+    const handleAddUnit = async (isNew = false) => {
         const newUnit = window.prompt("Enter new unit name:");
         if (newUnit && newUnit.trim() !== '') {
             const lowerUnit = newUnit.trim().toLowerCase();
-            if (!units.includes(lowerUnit)) {
+            
+            const existingUnit = units.find(u => u.toLowerCase() === lowerUnit);
+            const finalUnit = existingUnit || lowerUnit;
+
+            if (!existingUnit) {
                 try {
-                    const { error } = await supabase.from('units').insert([{ name: lowerUnit }]);
-                    if (error) throw error;
-                    setUnits([...units, lowerUnit]);
+                    const { error } = await supabase.from('units').insert([{ unit_name: lowerUnit }]);
+                    if (error) {
+                        console.warn("Note: Could not save unit to DB:", error.message);
+                        alert("Warning: Could not save unit permanently.\nReason: " + error.message);
+                    }
                 } catch (err) {
                     console.error("Error adding unit:", err.message);
-                    alert("Failed to add unit.");
-                    return;
                 }
+                setUnits(prev => [...prev, lowerUnit]);
             }
-            setEditingItem(prev => ({ ...prev, unit: lowerUnit, unit_name: lowerUnit }));
+            if (isNew) {
+                setNewItem(prev => ({ ...prev, unit: finalUnit }));
+            } else {
+                setEditingItem(prev => ({ ...prev, unit: finalUnit, unit_name: finalUnit }));
+            }
+        }
+    };
+
+    const handleDeleteItem = async (itemId) => {
+        if (window.confirm("Are you sure you want to delete this item?")) {
+            try {
+                const { error } = await supabase
+                    .from('inventory_procurement')
+                    .delete()
+                    .eq('item_id', itemId);
+                if (error) throw error;
+                setInventory(prev => prev.filter(item => item.item_id !== itemId));
+            } catch (err) {
+                console.error("Error deleting item:", err.message);
+                alert("Failed to delete item: " + err.message);
+            }
         }
     };
 
@@ -206,7 +296,7 @@ export default function InventoryScreen() {
                                     </select>
                                     <button
                                         type="button"
-                                        onClick={handleAddCategory}
+                                        onClick={() => handleAddCategory(false)}
                                         className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
                                     >
                                         + Add
@@ -241,7 +331,7 @@ export default function InventoryScreen() {
                                     </select>
                                     <button
                                         type="button"
-                                        onClick={handleAddUnit}
+                                        onClick={() => handleAddUnit(false)}
                                         className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
                                     >
                                         + Add
@@ -257,6 +347,97 @@ export default function InventoryScreen() {
                 </div>
             )}
 
+            {/* Add Item Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">Add New Item</h3>
+                            <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                        </div>
+                        <form onSubmit={handleCreateItem} className="space-y-6">
+                            <div>
+                                <label htmlFor="newItemId" className="block text-sm font-medium text-gray-700 mb-1">Item Number & SKU</label>
+                                <input
+                                    type="text"
+                                    id="newItemId"
+                                    name="item_id"
+                                    required
+                                    readOnly
+                                    value={newItem.item_id}
+                                    onChange={handleAddFormChange}
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 text-gray-500 cursor-not-allowed"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="newItem" className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                                <input
+                                    type="text"
+                                    id="newItem"
+                                    name="item"
+                                    required
+                                    value={newItem.item}
+                                    onChange={handleAddFormChange}
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="newDescription" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <input
+                                    type="text"
+                                    id="newDescription"
+                                    name="description"
+                                    value={newItem.description}
+                                    onChange={handleAddFormChange}
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="newCategory" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <div className="flex space-x-2">
+                                    <select
+                                        id="newCategory"
+                                        name="category"
+                                        required
+                                        value={newItem.category}
+                                        onChange={handleAddFormChange}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="" disabled>Select a category</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                    <button type="button" onClick={() => handleAddCategory(true)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">
+                                        + Add
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="newQuantity" className="block text-sm font-medium text-gray-700 mb-1">Initial Qty</label>
+                                    <input type="number" id="newQuantity" name="quantity_available" required min="0" value={newItem.quantity_available} onChange={handleAddFormChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                                </div>
+                                <div>
+                                    <label htmlFor="newUnit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                    <div className="flex space-x-2">
+                                        <select id="newUnit" name="unit" required value={newItem.unit} onChange={handleAddFormChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                            <option value="" disabled>Select...</option>
+                                            {units.map((u) => (<option key={u} value={u}>{u}</option>))}
+                                        </select>
+                                        <button type="button" onClick={() => handleAddUnit(true)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100">
+                                <button type="button" onClick={handleCloseAddModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
+                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">Create Item</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navigation */}
             <Navigation />
 
@@ -265,7 +446,7 @@ export default function InventoryScreen() {
                 <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
                     <h2 className="text-xl font-semibold text-gray-800">Complete Inventory</h2>
                     <div className="flex items-center space-x-4">
-                        <button onClick={() => navigate('/new-item')} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+                        <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
                             + Add New Item
                         </button>
                     </div>
@@ -342,7 +523,9 @@ export default function InventoryScreen() {
                                         
                                         return (
                                         <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{item.item_id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                                ITM-{String(item.item_id).padStart(4, '0')}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">{item.item}</div>
                                                 <div className="text-sm text-gray-500">{item.description}</div>
@@ -359,7 +542,7 @@ export default function InventoryScreen() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
-                                                <span className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
+                                                <span onClick={() => handleDeleteItem(item.item_id)} className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                             </td>
                                         </tr>
                                     )}) : (

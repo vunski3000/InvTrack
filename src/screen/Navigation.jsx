@@ -27,7 +27,7 @@ export default function Navigation() {
                             <span onClick={() => navigate('/dashboard')} className={isActiveTab(['/dashboard'])}>
                                 Dashboard
                             </span>
-                            <span onClick={() => navigate('/inventory')} className={isActiveTab(['/inventory', '/new-item'])}>
+                            <span onClick={() => navigate('/inventory')} className={isActiveTab(['/inventory'])}>
                                 Inventory
                             </span>
                             <div className="relative">
