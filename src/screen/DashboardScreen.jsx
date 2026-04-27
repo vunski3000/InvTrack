@@ -16,14 +16,7 @@ ChartJS.register(ArcElement, Title, Tooltip, Legend);
 export default function DashboardScreen() {
     const navigate = useNavigate();
 
-    // Mock data for inventory items
-    const [inventory, setInventory] = useState([
-        { id: 1, name: 'Logitech Wireless Mouse', sku: 'WM-001', category: 'Electronics', quantity: 150, status: 'In Stock' },
-        { id: 2, name: 'Mechanical Keyboard v2', sku: 'MK-042', category: 'Electronics', quantity: 12, status: 'Low Stock' },
-        { id: 3, name: 'Ergonomic Office Chair', sku: 'OC-992', category: 'Furniture', quantity: 0, status: 'Out of Stock' },
-        { id: 4, name: 'Black Gel Pens (10 Pack)', sku: 'GP-110', category: 'Stationery', quantity: 85, status: 'In Stock' },
-        { id: 5, name: '27-inch 4K Monitor', sku: 'MN-4K27', category: 'Electronics', quantity: 8, status: 'Low Stock' },
-    ]);
+    const [inventory, setInventory] = useState([]);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -31,9 +24,20 @@ export default function DashboardScreen() {
     const [units, setUnits] = useState([]);
 
     useEffect(() => {
+        fetchInventory();
         fetchCategories();
         fetchUnits();
     }, []);
+
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            if (error) throw error;
+            setInventory(data || []);
+        } catch (err) {
+            console.error("Error fetching inventory:", err.message);
+        }
+    };
 
     const fetchCategories = async () => {
         try {
@@ -77,23 +81,22 @@ export default function DashboardScreen() {
     const handleUpdateItem = async (e) => {
         e.preventDefault();
         try {
-            const updatedQuantity = parseInt(editingItem.quantity, 10) || 0;
+            const updatedQuantity = parseInt(editingItem.quantity_available, 10) || 0;
 
-            // Updates Supabase matching Dashboard's mock 'id' to 'item_id'
             const { error } = await supabase
                 .from('inventory_procurement')
                 .update({
-                    category: editingItem.category,
+                    category: editingItem.category || editingItem.category_name,
                     quantity_available: updatedQuantity,
-                    unit: editingItem.unit
+                    unit: editingItem.unit || editingItem.unit_name
                 })
-                .eq('item_id', editingItem.id);
+                .eq('item_id', editingItem.item_id);
 
             if (error) throw error;
 
             setInventory(prevInventory =>
                 prevInventory.map(item =>
-                    item.id === editingItem.id ? { ...editingItem, quantity: updatedQuantity } : item
+                    item.item_id === editingItem.item_id ? { ...editingItem, quantity_available: updatedQuantity } : item
                 )
             );
             handleCloseEditModal();
@@ -118,7 +121,7 @@ export default function DashboardScreen() {
                     return;
                 }
             }
-            setEditingItem(prev => ({ ...prev, category: upperCategory }));
+            setEditingItem(prev => ({ ...prev, category: upperCategory, category_name: upperCategory }));
         }
     };
 
@@ -137,12 +140,13 @@ export default function DashboardScreen() {
                     return;
                 }
             }
-            setEditingItem(prev => ({ ...prev, unit: lowerUnit }));
+            setEditingItem(prev => ({ ...prev, unit: lowerUnit, unit_name: lowerUnit }));
         }
     };
 
     const categoryCounts = inventory.reduce((acc, item) => {
-        acc[item.category] = (acc[item.category] || 0) + 1;
+        const cat = item.category_name || item.category || 'Uncategorized';
+        acc[cat] = (acc[cat] || 0) + 1;
         return acc;
     }, {});
 
@@ -178,7 +182,7 @@ export default function DashboardScreen() {
         maintainAspectRatio: false,
         plugins: {
             legend: {
-                position: 'right',
+                position: 'bottom',
             },
             title: {
                 display: false,
@@ -217,6 +221,13 @@ export default function DashboardScreen() {
         }
     };
 
+    // Calculate KPIs
+    const totalItems = inventory.reduce((sum, item) => sum + (parseInt(item.quantity_available, 10) || 0), 0);
+    const lowStockAlerts = inventory.filter(item => {
+        const qty = parseInt(item.quantity_available, 10) || 0;
+        return qty > 0 && qty < 10;
+    }).length;
+
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
             {/* Edit Item Modal */}
@@ -234,7 +245,7 @@ export default function DashboardScreen() {
                                     <select
                                         id="category"
                                         name="category"
-                                        value={editingItem.category}
+                                        value={editingItem.category || editingItem.category_name || ''}
                                         onChange={handleEditFormChange}
                                         className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                     >
@@ -256,8 +267,8 @@ export default function DashboardScreen() {
                                 <input
                                     type="number"
                                     id="quantity"
-                                    name="quantity"
-                                    value={editingItem.quantity}
+                                    name="quantity_available"
+                                    value={editingItem.quantity_available || ''}
                                     onChange={handleEditFormChange}
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                 />
@@ -268,7 +279,7 @@ export default function DashboardScreen() {
                                     <select
                                         id="unit"
                                         name="unit"
-                                        value={editingItem.unit || ''}
+                                        value={editingItem.unit || editingItem.unit_name || ''}
                                         onChange={handleEditFormChange}
                                         className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                                     >
@@ -285,20 +296,6 @@ export default function DashboardScreen() {
                                         + Add
                                     </button>
                                 </div>
-                            </div>
-                            <div>
-                                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select
-                                    id="status"
-                                    name="status"
-                                    value={editingItem.status}
-                                    onChange={handleEditFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                >
-                                    <option>In Stock</option>
-                                    <option>Low Stock</option>
-                                    <option>Out of Stock</option>
-                                </select>
                             </div>
                             <div className="flex justify-end space-x-4 pt-4">
                                 <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
@@ -323,14 +320,14 @@ export default function DashboardScreen() {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 lg:p-8">
                     
                     {/* Metric Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
                             <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Total Items</p>
-                                <p className="text-2xl font-bold text-gray-900">255</p>
+                                <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
                             </div>
                         </div>
                         
@@ -340,17 +337,7 @@ export default function DashboardScreen() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Low Stock Alerts</p>
-                                <p className="text-2xl font-bold text-gray-900">2</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500">Total Value</p>
-                                <p className="text-2xl font-bold text-gray-900">$8,450.00</p>
+                                <p className="text-2xl font-bold text-gray-900">{lowStockAlerts}</p>
                             </div>
                         </div>
                     </div>
@@ -374,21 +361,26 @@ export default function DashboardScreen() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {inventory.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                        {inventory.slice(0, 5).map((item) => {
+                                            let derivedStatus = 'In Stock';
+                                            if (item.quantity_available <= 0) derivedStatus = 'Out of Stock';
+                                            else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
+                                            
+                                            return (
+                                            <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                                                    <div className="text-sm text-gray-500">{item.sku}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{item.item}</div>
+                                                    <div className="text-sm text-gray-500">{item.item_id}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {item.category}
+                                                    {item.category_name || item.category || ''}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                                    {item.quantity}
+                                                    {item.quantity_available}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(item.status)}`}>
-                                                        {item.status}
+                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>
+                                                        {derivedStatus}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -396,7 +388,7 @@ export default function DashboardScreen() {
                                                     <span className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                                 </td>
                                             </tr>
-                                        ))}
+                                        )})}
                                     </tbody>
                                 </table>
                             </div>
@@ -405,7 +397,7 @@ export default function DashboardScreen() {
                         {/* Chart Section */}
                         <div className="bg-white shadow-sm rounded-xl border border-gray-100 p-6 flex flex-col">
                             <h3 className="text-lg font-medium text-gray-900 mb-4">Items by Category</h3>
-                            <div className="relative h-64">
+                            <div className="relative h-56 flex justify-center w-full">
                                 <Pie options={pieChartOptions} data={pieChartData} />
                             </div>
                         </div>
