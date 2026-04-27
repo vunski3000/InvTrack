@@ -37,7 +37,7 @@ export default function StaffNavigation() {
                                 </button>
                                 {procurementOpen && (
                                     <div className="absolute mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
-                                        <span onMouseDown={() => navigate('/request')} className={isDropdownItemActive('/request')}>Requisition</span>
+                                    <span onMouseDown={() => navigate('/staff-request')} className={isDropdownItemActive('/staff-request')}>Requisition</span>
                                         <span onMouseDown={() => navigate('/staff-ppmp')} className={isDropdownItemActive('/staff-ppmp')}>PPMP (Project Procurement Monitoring Plan)</span>
                                     </div>
                                 )}
