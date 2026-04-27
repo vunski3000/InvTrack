@@ -46,7 +46,7 @@ export default function StaffPPMPScreen() {
                 if (data) {
                     // Map Supabase inventory data to match the PPMP modal's expected format
                     const inventoryItems = data.map(item => ({
-                        itemNumber: item.item_id,
+                        itemNumber: `ITM-${String(item.item_id).padStart(4, '0')}`,
                         itemDescription: item.description ? `${item.item} - ${item.description}` : item.item,
                         quantity: item.quantity_available,
                         unit: item.unit_name || item.unit || ''

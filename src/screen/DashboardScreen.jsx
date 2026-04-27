@@ -370,7 +370,9 @@ export default function DashboardScreen() {
                                             <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm font-medium text-gray-900">{item.item}</div>
-                                                    <div className="text-sm text-gray-500">{item.item_id}</div>
+                                                    <div className="text-sm text-gray-500 font-mono">
+                                                        ITM-{String(item.item_id).padStart(4, '0')}
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                     {item.category_name || item.category || ''}
