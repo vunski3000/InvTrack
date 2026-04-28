@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 function SignupScreen() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       setError('Please fill in all fields');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email');
       return;
     }
 
@@ -27,10 +24,28 @@ function SignupScreen() {
       return;
     }
 
-    setError('');
-    // TODO: Add actual registration logic here
-    console.log('Signup attempt:', { email, password });
-    setShowSuccessModal(true);
+    try {
+      setIsLoading(true);
+      setError('');
+      
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email: `${username}@invtrack.local`,
+        password,
+        options: {
+          data: {
+            role: 'staff', // Default all new signups to 'staff'
+          },
+        },
+      });
+
+      if (signupError) throw signupError;
+
+      setShowSuccessModal(true);
+    } catch (err) {
+      setError(err.message || 'Failed to sign up');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,8 +70,8 @@ function SignupScreen() {
         <h2 className="text-2xl font-bold mb-6 text-center">Sign Up</h2>
         <form className="space-y-4" onSubmit={handleSignup}>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input type="email" className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-700">Username or Staff Number</label>
+            <input type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="e.g. staff123" value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Password</label>
@@ -73,8 +88,12 @@ function SignupScreen() {
             </div>
           )}
 
-          <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition">
-            Sign Up
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Signing up...' : 'Sign Up'}
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">

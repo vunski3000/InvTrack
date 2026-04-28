@@ -1,28 +1,45 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function AdminLoginScreen() {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         if (e) e.preventDefault();
-        if (!email || !password) {
+        if (!username || !password) {
             setError('Please fill in all fields');
             return;
         }
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setError('Please enter a valid email');
-            return;
-        }
+        try {
+            setIsLoading(true);
+            setError('');
+            
+            const { data, error: signInError } = await supabase.auth.signInWithPassword({
+                email: `${username.toLowerCase()}@invtrack.local`,
+                password,
+            });
 
-        setError('');
-        // TODO: Add authentication logic here
-        console.log('Admin Login attempt:', { email, password });
-        navigate('/dashboard');
+            if (signInError) throw signInError;
+
+            const userRole = data.user?.user_metadata?.role;
+
+            if (userRole !== 'admin') {
+                await supabase.auth.signOut(); // Immediately sign them out
+                throw new Error('Access denied. Admin privileges required.');
+            }
+
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.message || 'Failed to sign in');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -55,17 +72,17 @@ export default function AdminLoginScreen() {
                     
                     <form className="space-y-5" onSubmit={handleLogin}>
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">Username / Staff Number</label>
                             <div className="mt-1">
                                 <input
-                                    id="email"
-                                    type="email"
-                                    autoComplete="email"
+                                    id="username"
+                                    type="text"
+                                    autoComplete="username"
                                     required
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-150 ease-in-out"
-                                    placeholder="admin@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="e.g. admin123"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
                                 />
                             </div>
                         </div>
@@ -93,8 +110,12 @@ export default function AdminLoginScreen() {
                         )}
 
                         <div>
-                            <button type="submit" className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
-                                Sign In
+                            <button 
+                                type="submit" 
+                                disabled={isLoading}
+                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? 'Signing in...' : 'Sign In'}
                             </button>
                         </div>
                     </form>
