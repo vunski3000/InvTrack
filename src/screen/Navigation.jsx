@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function Navigation() {
     const navigate = useNavigate();
     const location = useLocation();
     const [procurementOpen, setProcurementOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [username, setUsername] = useState('');
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                // Extract the username from "username@invtrack.local"
+                const extractedUsername = user.email.split('@')[0];
+                
+                // Check for specific admin assignments
+                if (extractedUsername === '19987975') {
+                    setUsername('Admin1');
+                } else if (extractedUsername === '19987941') {
+                    setUsername('Admin2');
+                } else {
+                    setUsername(extractedUsername); // Fallback to raw username
+                }
+            }
+        };
+
+        fetchUser();
+    }, []);
 
     // Helper to dynamically highlight top-level tabs based on current route
     const isActiveTab = (paths) => paths.includes(location.pathname)
@@ -58,6 +81,15 @@ export default function Navigation() {
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                {/* Right Side: Username Badge */}
+                <div className="hidden md:flex items-center space-x-4">
+                    {username && (
+                        <span className="text-sm font-medium text-indigo-100 bg-indigo-800 px-4 py-1.5 rounded-full shadow-inner">
+                            {username}
+                        </span>
+                    )}
                 </div>
             </div>
         </nav>

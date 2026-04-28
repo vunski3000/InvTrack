@@ -6,66 +6,23 @@ import { supabase } from '../supabaseClient';
 export default function PPMPScreen() {
     const navigate = useNavigate();
 
-    const [ppmps, setPpmps] = useState([
-        {
-            id: 'PPMP-2026-01',
-            name: 'SMAW NC I',
-            department: 'Vocational',
-            year: '2026',
-            status: 'Approved',
-            items: []
-        },
-        {
-            id: 'PPMP-2026-02',
-            name: 'MASONRY NC I',
-            department: 'Vocational',
-            year: '2026',
-            status: 'Pending',
-            items: []
-        }
-    ]);
+    const [ppmps, setPpmps] = useState([]);
 
     const [selectedPPMP, setSelectedPPMP] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditingPPMP, setIsEditingPPMP] = useState(false);
     const [units, setUnits] = useState([]);
-    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', status: 'Pending', items: [] });
+    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
 
     useEffect(() => {
-        const fetchInventoryForPPMP = async () => {
+        const fetchPPMPS = async () => {
             try {
-                // Fetch all inventory items for SMAW NC I
-                const { data, error } = await supabase
-                    .from('inventory_procurement')
-                    .select('*')
-                    .order('item_id', { ascending: true });
-                
+                const { data, error } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
-
-                if (data) {
-                    // Map Supabase inventory data to match the PPMP modal's expected format
-                    const inventoryItems = data.map(item => ({
-                        itemNumber: `ITM-${String(item.item_id).padStart(4, '0')}`,
-                        itemDescription: item.description ? `${item.item} - ${item.description}` : item.item,
-                        quantity: item.quantity_available,
-                        unit: item.unit_name || item.unit || ''
-                    }));
-
-                    setPpmps(prev => prev.map(p => 
-                        p.id === 'PPMP-2026-01' ? { ...p, items: inventoryItems } : p
-                    ));
-
-                    // Update the modal content if it is already open while data is loading
-                    setSelectedPPMP(prevSelected => {
-                        if (prevSelected && prevSelected.id === 'PPMP-2026-01') {
-                            return { ...prevSelected, items: inventoryItems };
-                        }
-                        return prevSelected;
-                    });
-                }
+                setPpmps(data || []);
             } catch (err) {
-                console.error("Error fetching inventory for PPMP:", err.message);
+                console.error("Error fetching PPMPs:", err.message);
             }
         };
 
@@ -81,7 +38,7 @@ export default function PPMPScreen() {
             }
         };
 
-        fetchInventoryForPPMP();
+        fetchPPMPS();
         fetchUnits();
     }, []);
 
@@ -102,16 +59,31 @@ export default function PPMPScreen() {
             name: '',
             department: '',
             year: new Date().getFullYear().toString(),
-            status: 'Pending',
             items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
         });
         setIsCreateModalOpen(true);
     };
 
-    const handleCreatePPMP = (e) => {
+    const handleCreatePPMP = async (e) => {
         e.preventDefault();
-        setPpmps([ppmpForm, ...ppmps]);
-        setIsCreateModalOpen(false);
+        try {
+            const { error } = await supabase.from('ppmps').insert([{
+                id: ppmpForm.id,
+                name: ppmpForm.name,
+                department: ppmpForm.department,
+                year: ppmpForm.year,
+                items: ppmpForm.items
+            }]);
+            if (error) throw error;
+            
+            const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
+            if (data) setPpmps(data);
+            
+            setIsCreateModalOpen(false);
+        } catch (err) {
+            console.error("Error creating PPMP:", err.message);
+            alert("Failed to create PPMP: " + err.message);
+        }
     };
 
     const handleEditPPMP = () => {
@@ -119,11 +91,26 @@ export default function PPMPScreen() {
         setIsEditingPPMP(true);
     };
 
-    const handleSaveEdit = (e) => {
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
-        setPpmps(prev => prev.map(p => p.id === ppmpForm.id ? ppmpForm : p));
-        setSelectedPPMP(ppmpForm);
-        setIsEditingPPMP(false);
+        try {
+            const { error } = await supabase.from('ppmps').update({
+                name: ppmpForm.name,
+                department: ppmpForm.department,
+                year: ppmpForm.year,
+                items: ppmpForm.items
+            }).eq('id', ppmpForm.id);
+            if (error) throw error;
+            
+            const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
+            if (data) setPpmps(data);
+            
+            setSelectedPPMP(ppmpForm);
+            setIsEditingPPMP(false);
+        } catch (err) {
+            console.error("Error saving PPMP:", err.message);
+            alert("Failed to save changes: " + err.message);
+        }
     };
 
     const handleItemChange = (index, field, value) => {

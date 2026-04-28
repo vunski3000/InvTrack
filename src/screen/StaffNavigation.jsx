@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 export default function StaffNavigation() {
     const navigate = useNavigate();
     const location = useLocation();
     const [procurementOpen, setProcurementOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [username, setUsername] = useState('');
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                const extractedUsername = user.email.split('@')[0];
+                
+                setUsername(extractedUsername);
+            }
+        };
+
+        fetchUser();
+    }, []);
 
     // Helper to dynamically highlight top-level tabs based on current route
     const isActiveTab = (paths) => paths.includes(location.pathname)
@@ -45,12 +60,17 @@ export default function StaffNavigation() {
                         </div>
                     </div>
                 </div>
-                <div className="hidden md:block">
-                     <div className="relative">
-                        <button onClick={() => setSettingsOpen(!settingsOpen)} onBlur={() => setTimeout(() => setSettingsOpen(false), 150)} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer flex items-center">
-                            <span onMouseDown={() => navigate('/staff-login')} className="block px-4 py-2 text-sm text-indigo-100 hover:text-white cursor-pointer">Log out</span>
-                        </button>
-                    </div>
+                <div className="hidden md:flex items-center space-x-4">
+                    {username && (
+                        <span className="text-sm font-medium text-indigo-100 bg-indigo-800 px-4 py-1.5 rounded-full shadow-inner">
+                            {username}
+                        </span>
+                    )}
+                    <div className="relative">
+                       <button onClick={() => setSettingsOpen(!settingsOpen)} onBlur={() => setTimeout(() => setSettingsOpen(false), 150)} className="px-3 py-2 rounded-md text-sm font-medium text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer flex items-center">
+                           <span onMouseDown={() => navigate('/staff-login')} className="block px-4 py-2 text-sm text-indigo-100 hover:text-white cursor-pointer">Log out</span>
+                       </button>
+                   </div>
                 </div>
             </div>
         </nav>

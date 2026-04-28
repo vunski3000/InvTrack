@@ -1,17 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import StaffNavigation from './StaffNavigation';
+import { supabase } from '../supabaseClient';
 
 export default function StaffDashboardScreen() {
-    const recentAudits = [
-        { id: 1, item: 'A4 Paper', quantity: 10, date: '2026-04-20', status: 'Received' },
-        { id: 2, item: 'Blue Pens', quantity: 50, date: '2026-04-19', status: 'Received' },
-        { id: 3, item: 'Whiteboard Markers', quantity: 12, date: '2026-04-18', status: 'Pending' },
-    ];
+    const [inventory, setInventory] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const lowStockItems = [
-        { id: 1, item: 'Printer Ink', quantity: 2, threshold: 5 },
-        { id: 2, item: 'Sticky Notes', quantity: 4, threshold: 10 },
-    ];
+    useEffect(() => {
+        fetchInventory();
+    }, []);
+
+    const fetchInventory = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: false });
+            if (error) throw error;
+            setInventory(data || []);
+        } catch (err) {
+            console.error("Error fetching inventory:", err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const recentAudits = []; // Intentionally left empty for now
+
+    const lowStockItems = inventory.filter(item => {
+        const qty = parseInt(item.quantity_available, 10) || 0;
+        return qty > 0 && qty < 10;
+    }).map(item => ({
+        id: item.item_id,
+        item: item.item,
+        quantity: item.quantity_available,
+        threshold: 10
+    }));
 
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
@@ -28,7 +50,7 @@ export default function StaffDashboardScreen() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Low Stock Alerts</p>
-                                <p className="text-2xl font-bold text-gray-900">{lowStockItems.length}</p>
+                                <p className="text-2xl font-bold text-gray-900">{loading ? '...' : lowStockItems.length}</p>
                             </div>
                         </div>
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
@@ -58,7 +80,15 @@ export default function StaffDashboardScreen() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {lowStockItems.map((item) => (
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan="3" className="px-6 py-10 text-center text-gray-500 font-medium">Loading items...</td>
+                                            </tr>
+                                        ) : lowStockItems.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="3" className="px-6 py-10 text-center text-gray-500 font-medium">No items are low on stock.</td>
+                                            </tr>
+                                        ) : lowStockItems.map((item) => (
                                             <tr key={item.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.item}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-semibold">{item.quantity}</td>
@@ -86,7 +116,11 @@ export default function StaffDashboardScreen() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {recentAudits.map((audit) => (
+                                        {recentAudits.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="4" className="px-6 py-10 text-center text-gray-500 font-medium">No items acquired yet.</td>
+                                            </tr>
+                                        ) : recentAudits.map((audit) => (
                                             <tr key={audit.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{audit.item}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.quantity}</td>

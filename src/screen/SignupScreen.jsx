@@ -29,7 +29,7 @@ function SignupScreen() {
       setError('');
       
       const { data, error: signupError } = await supabase.auth.signUp({
-        email: `${username}@invtrack.local`,
+        email: `${username.toLowerCase()}@invtrack.local`,
         password,
         options: {
           data: {

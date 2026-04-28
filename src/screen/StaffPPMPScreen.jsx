@@ -6,66 +6,22 @@ import { supabase } from '../supabaseClient';
 export default function StaffPPMPScreen() {
     const navigate = useNavigate();
 
-    const [ppmps, setPpmps] = useState([
-        {
-            id: 'PPMP-2026-01',
-            name: 'SMAW NC I',
-            department: 'Vocational',
-            year: '2026',
-            status: 'Approved',
-            items: []
-        },
-        {
-            id: 'PPMP-2026-02',
-            name: 'MASONRY NC I',
-            department: 'Vocational',
-            year: '2026',
-            status: 'Pending',
-            items: []
-        }
-    ]);
+    const [ppmps, setPpmps] = useState([]);
 
     const [selectedPPMP, setSelectedPPMP] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditingPPMP, setIsEditingPPMP] = useState(false);
     const [units, setUnits] = useState([]);
-    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', status: 'Pending', items: [] });
+    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
 
     useEffect(() => {
-        const fetchInventoryForPPMP = async () => {
+        const fetchPPMPS = async () => {
             try {
-                // Fetch all inventory items for SMAW NC I
-                const { data, error } = await supabase
-                    .from('inventory_procurement')
-                    .select('*')
-                    .order('item_id', { ascending: true });
-                
+                const { data, error } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
-
-                if (data) {
-                    // Map Supabase inventory data to match the PPMP modal's expected format
-                    const inventoryItems = data.map(item => ({
-                        itemNumber: `ITM-${String(item.item_id).padStart(4, '0')}`,
-                        itemDescription: item.description ? `${item.item} - ${item.description}` : item.item,
-                        quantity: item.quantity_available,
-                        unit: item.unit_name || item.unit || ''
-                    }));
-
-                    setPpmps(prev => prev.map(p => 
-                        p.id === 'PPMP-2026-01' ? { ...p, items: inventoryItems } : p
-                    ));
-
-                    // Update the modal content if it is already open while data is loading
-                    setSelectedPPMP(prevSelected => {
-                        if (prevSelected && prevSelected.id === 'PPMP-2026-01') {
-                            return { ...prevSelected, items: inventoryItems };
-                        }
-                        return prevSelected;
-                    });
-                }
+                setPpmps(data || []);
             } catch (err) {
-                console.error("Error fetching inventory for PPMP:", err.message);
+                console.error("Error fetching PPMPs:", err.message);
             }
         };
 
@@ -81,7 +37,7 @@ export default function StaffPPMPScreen() {
             }
         };
 
-        fetchInventoryForPPMP();
+        fetchPPMPS();
         fetchUnits();
     }, []);
 
@@ -96,34 +52,26 @@ export default function StaffPPMPScreen() {
         setIsEditingPPMP(false);
     };
 
-    const handleOpenCreateModal = () => {
-        setPpmpForm({
-            id: `PPMP-${new Date().getFullYear()}-${String(ppmps.length + 1).padStart(2, '0')}`,
-            name: '',
-            department: '',
-            year: new Date().getFullYear().toString(),
-            status: 'Pending',
-            items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
-        });
-        setIsCreateModalOpen(true);
-    };
-
-    const handleCreatePPMP = (e) => {
-        e.preventDefault();
-        setPpmps([ppmpForm, ...ppmps]);
-        setIsCreateModalOpen(false);
-    };
-
     const handleEditPPMP = () => {
         setPpmpForm(JSON.parse(JSON.stringify(selectedPPMP))); // Deep copy for editing
         setIsEditingPPMP(true);
     };
 
-    const handleSaveEdit = (e) => {
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
-        setPpmps(prev => prev.map(p => p.id === ppmpForm.id ? ppmpForm : p));
-        setSelectedPPMP(ppmpForm);
-        setIsEditingPPMP(false);
+        try {
+            const { error } = await supabase.from('ppmps').update({ items: ppmpForm.items }).eq('id', ppmpForm.id);
+            if (error) throw error;
+            
+            const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
+            if (data) setPpmps(data);
+            
+            setSelectedPPMP(ppmpForm);
+            setIsEditingPPMP(false);
+        } catch (err) {
+            console.error("Error saving PPMP:", err.message);
+            alert("Failed to save changes: " + err.message);
+        }
     };
 
     const handleItemChange = (index, field, value) => {
@@ -160,20 +108,20 @@ export default function StaffPPMPScreen() {
         }
     };
 
-    const renderPPMPForm = (isCreate) => (
-        <form onSubmit={isCreate ? handleCreatePPMP : handleSaveEdit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    const renderPPMPForm = () => (
+        <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                    <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., SMAW NC I" />
+                    <input type="text" readOnly value={ppmpForm.name} className="w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                    <input type="text" required value={ppmpForm.department} onChange={e => setPpmpForm({...ppmpForm, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Vocational" />
+                    <input type="text" readOnly value={ppmpForm.department} className="w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                    <input type="text" required value={ppmpForm.year} onChange={e => setPpmpForm({...ppmpForm, year: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 2026" />
+                    <input type="text" readOnly value={ppmpForm.year} className="w-full p-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed" />
                 </div>
             </div>
 
@@ -244,11 +192,11 @@ export default function StaffPPMPScreen() {
             </div>
 
             <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 shrink-0">
-                <button type="button" onClick={() => { isCreate ? setIsCreateModalOpen(false) : setIsEditingPPMP(false); }} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
+                <button type="button" onClick={() => setIsEditingPPMP(false)} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
                     Cancel
                 </button>
                 <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                    {isCreate ? 'Create PPMP' : 'Save Changes'}
+                    Save Changes
                 </button>
             </div>
         </form>
@@ -265,7 +213,7 @@ export default function StaffPPMPScreen() {
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
-                        {isEditingPPMP ? renderPPMPForm(false) : (
+                        {isEditingPPMP ? renderPPMPForm() : (
                             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                                     <div className="md:col-span-2">
@@ -326,19 +274,6 @@ export default function StaffPPMPScreen() {
                 </div>
             )}
 
-            {/* Create Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
-                        <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">Create New PPMP</h3>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
-                        </div>
-                        {renderPPMPForm(true)}
-                    </div>
-                </div>
-            )}
-
             {/* Top Navigation */}
             <StaffNavigation />
 
@@ -346,9 +281,6 @@ export default function StaffPPMPScreen() {
             <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
                 <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
                     <h2 className="text-2xl font-bold text-gray-800">PPMP</h2>
-                    <button onClick={handleOpenCreateModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                        + Create New PPMP
-                    </button>
                 </div>
                 
                 <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">

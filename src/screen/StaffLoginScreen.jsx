@@ -21,7 +21,7 @@ export default function StaffLoginScreen() {
             setError('');
             
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
-                email: `${username}@invtrack.local`,
+                email: `${username.toLowerCase()}@invtrack.local`,
                 password,
             });
 
