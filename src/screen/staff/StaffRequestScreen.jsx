@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import StaffNavigation from './StaffNavigation';
+
+import StaffNavigation from "./StaffNavigation";
 
 export default function StaffRequestScreen() {
     const navigate = useNavigate();

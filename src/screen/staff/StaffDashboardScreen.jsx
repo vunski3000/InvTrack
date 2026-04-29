@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import StaffNavigation from './StaffNavigation';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 
 export default function StaffDashboardScreen() {
     const [inventory, setInventory] = useState([]);

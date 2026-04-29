@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from './Navigation';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 import { Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
