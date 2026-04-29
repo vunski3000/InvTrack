@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import StaffNavigation from "./StaffNavigation";
+import { supabase } from '../../supabaseClient';
 
 export default function StaffRequestScreen() {
     const navigate = useNavigate();
@@ -10,6 +11,7 @@ export default function StaffRequestScreen() {
     const [designation, setDesignation] = useState('');
     const [requestDate, setRequestDate] = useState(new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
@@ -26,16 +28,52 @@ export default function StaffRequestScreen() {
         setItems(newItems);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Requisition submitted:', { department, name, designation, requestDate, items });
-        // TODO: Integrate actual requisition logic here
-        alert('Item requested successfully!');
-        setDepartment('');
-        setName('');
-        setDesignation('');
-        setRequestDate(new Date().toISOString().split('T')[0]);
-        setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+        setIsSubmitting(true);
+        
+        try {
+            // Auto-generate an ID like REQ-2026-001
+            const currentYear = new Date().getFullYear().toString();
+            const { data: existingReqs } = await supabase
+                .from('requisition_issuance')
+                .select('id')
+                .ilike('id', `REQ-${currentYear}-%`);
+
+            let nextNum = 1;
+            if (existingReqs && existingReqs.length > 0) {
+                const nums = existingReqs.map(r => {
+                    const parts = r.id.split('-');
+                    return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                }).filter(n => !isNaN(n));
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+            }
+            const newId = `REQ-${currentYear}-${String(nextNum).padStart(3, '0')}`;
+
+            const { error } = await supabase.from('requisition_issuance').insert([{
+                id: newId,
+                department,
+                name,
+                designation,
+                requestDate,      // Change to request_date if your table column uses snake_case
+                items,
+                status: 'Pending'
+            }]);
+
+            if (error) throw error;
+
+            alert('Item requested successfully!');
+            setDepartment('');
+            setName('');
+            setDesignation('');
+            setRequestDate(new Date().toISOString().split('T')[0]);
+            setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+        } catch (err) {
+            console.error('Error submitting requisition:', err.message);
+            alert('Failed to submit request: ' + err.message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -182,8 +220,12 @@ export default function StaffRequestScreen() {
                         >
                             + Add Row
                         </button>
-                        <button type="submit" className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                            Submit Requisition
+                        <button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSubmitting ? 'Submitting...' : 'Submit Requisition'}
                         </button>
                         </div>
                     </form>
