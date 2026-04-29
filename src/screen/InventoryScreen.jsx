@@ -61,6 +61,13 @@ export default function InventoryScreen() {
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
 
+    // PPMP Creation State
+    const [isCreatingPPMP, setIsCreatingPPMP] = useState(false);
+    const [selectedForPPMP, setSelectedForPPMP] = useState([]);
+    const [isPPMPModalOpen, setIsPPMPModalOpen] = useState(false);
+    const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: new Date().getFullYear().toString() });
+    const [isSubmittingPPMP, setIsSubmittingPPMP] = useState(false);
+
     const handleOpenEditModal = (item) => {
         setEditingItem({ ...item });
         setIsEditModalOpen(true);
@@ -230,6 +237,61 @@ export default function InventoryScreen() {
         }
     };
 
+    const handleTogglePPMPItem = (item) => {
+        setSelectedForPPMP(prev => {
+            const isSelected = prev.some(p => p.item_id === item.item_id);
+            if (isSelected) {
+                return prev.filter(p => p.item_id !== item.item_id);
+            } else {
+                return [...prev, item];
+            }
+        });
+    };
+
+    const handleCreatePPMP = async (e) => {
+        e.preventDefault();
+        setIsSubmittingPPMP(true);
+        try {
+            const { data: yearPpmps } = await supabase
+                .from('ppmps')
+                .select('id')
+                .ilike('id', `PPMP-${ppmpForm.year}-%`);
+
+            let nextNum = 1;
+            if (yearPpmps && yearPpmps.length > 0) {
+                const nums = yearPpmps.map(p => {
+                    const parts = p.id.split('-');
+                    return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                }).filter(n => !isNaN(n));
+                
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+            }
+            const newId = `PPMP-${ppmpForm.year}-${String(nextNum).padStart(2, '0')}`;
+
+            const mappedItems = selectedForPPMP.map(i => ({
+                itemNumber: `ITM-${String(i.item_id).padStart(4, '0')}`,
+                itemDescription: i.description ? `${i.item} - ${i.description}` : i.item,
+                quantity: '1',
+                maxQuantity: i.quantity_available,
+                unit: i.unit_name || i.unit || ''
+            }));
+
+            const { error } = await supabase.from('ppmps').insert([{ id: newId, name: ppmpForm.name, department: ppmpForm.department, year: ppmpForm.year, items: mappedItems }]);
+            if (error) throw error;
+
+            alert('PPMP created successfully!');
+            setIsPPMPModalOpen(false);
+            setIsCreatingPPMP(false);
+            setSelectedForPPMP([]);
+            setPpmpForm({ name: '', department: '', year: new Date().getFullYear().toString() });
+        } catch (err) {
+            console.error("Error creating PPMP:", err.message);
+            alert("Failed to create PPMP: " + err.message);
+        } finally {
+            setIsSubmittingPPMP(false);
+        }
+    };
+
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
     const [statusFilter, setStatusFilter] = useState('All');
@@ -253,6 +315,27 @@ export default function InventoryScreen() {
             return matchesSearch && matchesCategory && matchesStatus;
         });
     }, [inventory, searchQuery, categoryFilter, statusFilter]);
+
+    const handleToggleAllPPMPItems = () => {
+        const availableItems = filteredInventory.filter(item => item.quantity_available > 0);
+
+        const allSelected = availableItems.length > 0 && availableItems.every(item => 
+            selectedForPPMP.some(p => p.item_id === item.item_id)
+        );
+
+        if (allSelected) {
+            // Deselect all currently visible items
+            setSelectedForPPMP(prev => 
+                prev.filter(p => !availableItems.some(item => item.item_id === p.item_id))
+            );
+        } else {
+            // Select all currently visible items
+            setSelectedForPPMP(prev => {
+                const newItems = availableItems.filter(item => !prev.some(p => p.item_id === item.item_id));
+                return [...prev, ...newItems];
+            });
+        }
+    };
 
     // Helper function to color-code status badges
     const getStatusStyle = (status) => {
@@ -433,6 +516,41 @@ export default function InventoryScreen() {
                 </div>
             )}
 
+            {/* Create PPMP Modal */}
+            {isPPMPModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">PPMP Details</h3>
+                            <button onClick={() => setIsPPMPModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                        </div>
+                        <form onSubmit={handleCreatePPMP} className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+                                <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., SMAW NC I" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                                <input type="text" required value={ppmpForm.department} onChange={e => setPpmpForm({...ppmpForm, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Vocational" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                                <input type="text" required value={ppmpForm.year} onChange={e => setPpmpForm({...ppmpForm, year: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 2026" />
+                            </div>
+                            
+                            <div className="bg-indigo-50 text-indigo-800 p-3 rounded-md text-sm border border-indigo-100">
+                                <strong>{selectedForPPMP.length}</strong> items will be added to this PPMP.
+                            </div>
+
+                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100 mt-4">
+                                <button type="button" onClick={() => setIsPPMPModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Back</button>
+                                <button type="submit" disabled={isSubmittingPPMP} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50">{isSubmittingPPMP ? 'Creating...' : 'Create PPMP'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navigation */}
             <Navigation />
 
@@ -441,9 +559,22 @@ export default function InventoryScreen() {
                 <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
                     <h2 className="text-xl font-semibold text-gray-800">Complete Inventory</h2>
                     <div className="flex items-center space-x-4">
-                        <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                            + Add New Item
-                        </button>
+                        {isCreatingPPMP ? (
+                            <>
+                                <span className="text-sm font-medium text-gray-600 hidden sm:inline">{selectedForPPMP.length} selected</span>
+                                <button onClick={() => { setIsCreatingPPMP(false); setSelectedForPPMP([]); }} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors shadow-sm">
+                                    Cancel
+                                </button>
+                                <button onClick={() => setIsPPMPModalOpen(true)} disabled={selectedForPPMP.length === 0} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
+                                    Next: Set Details
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => setIsCreatingPPMP(true)} className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 transition-colors shadow-sm">Create PPMP</button>
+                                <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">+ Add New Item</button>
+                            </>
+                        )}
                     </div>
                 </header>
 
@@ -489,6 +620,18 @@ export default function InventoryScreen() {
                         <table className="min-w-full divide-y divide-gray-200 relative">
                             <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
+                                        {isCreatingPPMP && (
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 w-10">
+                                                <input
+                                                    type="checkbox"
+                                                checked={filteredInventory.filter(i => i.quantity_available > 0).length > 0 && filteredInventory.filter(i => i.quantity_available > 0).every(item => selectedForPPMP.some(p => p.item_id === item.item_id))}
+                                                    onChange={handleToggleAllPPMPItems}
+                                                disabled={filteredInventory.filter(i => i.quantity_available > 0).length === 0}
+                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    title="Select All"
+                                                />
+                                            </th>
+                                        )}
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -501,13 +644,13 @@ export default function InventoryScreen() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
                                                 Loading inventory...
                                             </td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-10 text-center text-red-500">
+                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-red-500">
                                                 Error loading inventory: {error}
                                             </td>
                                         </tr>
@@ -518,6 +661,18 @@ export default function InventoryScreen() {
                                         
                                         return (
                                         <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
+                                            {isCreatingPPMP && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedForPPMP.some(p => p.item_id === item.item_id)}
+                                                        onChange={() => handleTogglePPMPItem(item)}
+                                                        disabled={item.quantity_available <= 0}
+                                                        title={item.quantity_available <= 0 ? "Out of stock" : ""}
+                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    />
+                                                </td>
+                                            )}
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                                                 ITM-{String(item.item_id).padStart(4, '0')}
                                             </td>
@@ -542,7 +697,7 @@ export default function InventoryScreen() {
                                         </tr>
                                     )}) : (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
                                                 No items found matching your filters.
                                             </td>
                                         </tr>

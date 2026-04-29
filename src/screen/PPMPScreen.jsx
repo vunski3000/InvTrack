@@ -54,11 +54,19 @@ export default function PPMPScreen() {
     };
 
     const handleOpenCreateModal = () => {
+        const currentYear = new Date().getFullYear().toString();
+        const yearPpmps = ppmps.filter(p => p.id && p.id.startsWith(`PPMP-${currentYear}-`));
+        let nextNum = 1;
+        if (yearPpmps.length > 0) {
+            const nums = yearPpmps.map(p => parseInt(p.id.split('-')[2], 10)).filter(n => !isNaN(n));
+            if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+        }
+
         setPpmpForm({
-            id: `PPMP-${new Date().getFullYear()}-${String(ppmps.length + 1).padStart(2, '0')}`,
+            id: `PPMP-${currentYear}-${String(nextNum).padStart(2, '0')}`,
             name: '',
             department: '',
-            year: new Date().getFullYear().toString(),
+            year: currentYear,
             items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
         });
         setIsCreateModalOpen(true);
@@ -113,8 +121,32 @@ export default function PPMPScreen() {
         }
     };
 
+    const handleDeletePPMP = async () => {
+        if (!selectedPPMP) return;
+        if (window.confirm(`Are you sure you want to delete ${selectedPPMP.id}?`)) {
+            try {
+                const { error } = await supabase.from('ppmps').delete().eq('id', selectedPPMP.id);
+                if (error) throw error;
+                
+                setPpmps(prev => prev.filter(p => p.id !== selectedPPMP.id));
+                closeModal();
+            } catch (err) {
+                console.error("Error deleting PPMP:", err.message);
+                alert("Failed to delete PPMP: " + err.message);
+            }
+        }
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...ppmpForm.items];
+
+        if (field === 'quantity' && newItems[index].maxQuantity !== undefined) {
+            const max = parseInt(newItems[index].maxQuantity, 10);
+            if (value !== '' && parseInt(value, 10) > max) {
+                value = max.toString(); // Clamp to the maximum available stock
+            }
+        }
+
         newItems[index][field] = value;
         setPpmpForm({ ...ppmpForm, items: newItems });
     };
@@ -186,7 +218,8 @@ export default function PPMPScreen() {
                                     <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                    <input type="number" required min="1" max={item.maxQuantity || undefined} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                    {item.maxQuantity !== undefined && <div className="text-xs text-gray-500 mt-1">Max: {item.maxQuantity}</div>}
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex space-x-2">
@@ -299,10 +332,15 @@ export default function PPMPScreen() {
                                     </div>
                                 )}
 
-                                <div className="flex justify-end space-x-4 shrink-0 mt-auto pt-4 border-t border-gray-200">
-                                    <button onClick={handleEditPPMP} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
-                                        Edit
-                                    </button>
+                                <div className="flex justify-between items-center shrink-0 mt-auto pt-4 border-t border-gray-200">
+                                    <div className="flex space-x-3">
+                                        <button onClick={handleEditPPMP} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                            Edit
+                                        </button>
+                                        <button onClick={handleDeletePPMP} className="px-6 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
+                                            Delete
+                                        </button>
+                                    </div>
                                     <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
                                         Close
                                     </button>

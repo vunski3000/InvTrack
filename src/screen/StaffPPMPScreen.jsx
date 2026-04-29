@@ -76,6 +76,14 @@ export default function StaffPPMPScreen() {
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...ppmpForm.items];
+
+        if (field === 'quantity' && newItems[index].maxQuantity !== undefined) {
+            const max = parseInt(newItems[index].maxQuantity, 10);
+            if (value !== '' && parseInt(value, 10) > max) {
+                value = max.toString(); // Clamp to the maximum available stock
+            }
+        }
+
         newItems[index][field] = value;
         setPpmpForm({ ...ppmpForm, items: newItems });
     };
@@ -147,7 +155,8 @@ export default function StaffPPMPScreen() {
                                     <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                    <input type="number" required min="1" max={item.maxQuantity || undefined} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                    {item.maxQuantity !== undefined && <div className="text-xs text-gray-500 mt-1">Max: {item.maxQuantity}</div>}
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex space-x-2">
