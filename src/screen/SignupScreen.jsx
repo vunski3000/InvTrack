@@ -57,7 +57,7 @@ function SignupScreen() {
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
             <p className="text-gray-600 mb-6">Your account is now registered.</p>
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/staff-login')}
               className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
             >
               Go to Login
@@ -98,7 +98,7 @@ function SignupScreen() {
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/staff-login" className="text-blue-600 hover:underline">
             Log in
           </Link>
         </p>

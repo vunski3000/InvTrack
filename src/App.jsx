@@ -12,6 +12,7 @@ import PurchaseRequestScreen from './screen/admin/PurchaseRequestScreen.jsx'
 import AdminRequestScreen from './screen/admin/AdminRequestScreen.jsx'
 import PPMPScreen from './screen/admin/PPMPScreen.jsx'
 import StaffNavigation from './screen/staff/StaffNavigation.jsx'
+import PersonnelScreen from './screen/admin/PersonnelScreen.jsx'
 import StaffDashboardScreen from './screen/staff/StaffDashboardScreen.jsx'
 import StaffInventoryScreen from './screen/staff/StaffInventoryScreen.jsx'
 import StaffPPMPScreen from './screen/staff/StaffPPMPScreen.jsx'
@@ -33,6 +34,7 @@ function App() {
           <Route path="/purchase-requests" element={<PurchaseRequestScreen />} />
           <Route path="/admin-requests" element={<AdminRequestScreen />} />
           <Route path="/ppmp" element={<PPMPScreen />} />
+          <Route path="/personnel" element={<PersonnelScreen />} />
           <Route path="/staff-dashboard" element={<StaffDashboardScreen />} />
           <Route path="/staff-inventory" element={<StaffInventoryScreen />} />
           <Route path="/staff-ppmp" element={<StaffPPMPScreen />} />

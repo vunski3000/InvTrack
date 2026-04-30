@@ -75,6 +75,7 @@ export default function Navigation() {
                                 {settingsOpen && (
                                     <div className="absolute mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-1 z-50">
                                         <span className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Preferences</span>
+                                        <span onMouseDown={() => navigate('/personnel')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">Personnel Management</span>
                                         <span onMouseDown={() => navigate('/login')} className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 cursor-pointer border-t border-gray-50">Log out</span>
                                     </div>
                                 )}

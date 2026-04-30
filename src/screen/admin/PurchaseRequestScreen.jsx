@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Navigation from "./Navigation";
+import { supabase } from '../../supabaseClient';
 
 export default function PurchaseRequestScreen() {
     const navigate = useNavigate();
@@ -12,7 +13,24 @@ export default function PurchaseRequestScreen() {
     const [requestDate, setRequestDate] = useState(new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     const [activeTab, setActiveTab] = useState('create');
+    const [inventoryList, setInventoryList] = useState([]);
     
+    useEffect(() => {
+        fetchInventory();
+    }, []);
+
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            if (error) throw error;
+            if (data) {
+                setInventoryList(data);
+            }
+        } catch (err) {
+            console.error("Error fetching inventory:", err);
+        }
+    };
+
     // Mock data for Purchase Requests
     const [purchaseRequests, setPurchaseRequests] = useState([
         {
@@ -73,6 +91,21 @@ export default function PurchaseRequestScreen() {
         setIsEditingRequest(false);
     };
 
+    const handleEditItemSelect = (index, selectedItemNumber) => {
+        const newItems = [...editForm.items];
+        newItems[index].itemNumber = selectedItemNumber;
+        
+        const selectedInventoryItem = inventoryList.find(i => `ITM-${String(i.item_id).padStart(4, '0')}` === selectedItemNumber);
+        if (selectedInventoryItem) {
+            newItems[index].itemDescription = selectedInventoryItem.description 
+                ? `${selectedInventoryItem.item} - ${selectedInventoryItem.description}` 
+                : selectedInventoryItem.item;
+            newItems[index].unit = selectedInventoryItem.unit_name || selectedInventoryItem.unit || '';
+        }
+        
+        setEditForm({ ...editForm, items: newItems });
+    };
+
     const handleEditItemChange = (index, field, value) => {
         const newItems = [...editForm.items];
         newItems[index][field] = value;
@@ -99,6 +132,21 @@ export default function PurchaseRequestScreen() {
             case 'Rejected': return 'bg-red-100 text-red-800 border-red-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
+    };
+
+    const handleItemSelect = (index, selectedItemNumber) => {
+        const newItems = [...items];
+        newItems[index].itemNumber = selectedItemNumber;
+        
+        const selectedInventoryItem = inventoryList.find(i => `ITM-${String(i.item_id).padStart(4, '0')}` === selectedItemNumber);
+        if (selectedInventoryItem) {
+            newItems[index].itemDescription = selectedInventoryItem.description 
+                ? `${selectedInventoryItem.item} - ${selectedInventoryItem.description}` 
+                : selectedInventoryItem.item;
+            newItems[index].unit = selectedInventoryItem.unit_name || selectedInventoryItem.unit || '';
+        }
+        
+        setItems(newItems);
     };
 
     const handleItemChange = (index, field, value) => {
@@ -160,7 +208,18 @@ export default function PurchaseRequestScreen() {
                         {editForm.items.map((item, index) => (
                             <tr key={index} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 py-3">
-                                    <input type="text" required value={item.itemNumber} onChange={(e) => handleEditItemChange(index, 'itemNumber', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="SKU/No." />
+                                <select
+                                    required
+                                    value={item.itemNumber}
+                                    onChange={(e) => handleEditItemSelect(index, e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="" disabled>Select Item</option>
+                                    {inventoryList.map((invItem) => {
+                                        const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                        return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
+                                    })}
+                                </select>
                                 </td>
                                 <td className="px-4 py-3">
                                     <input type="text" required value={item.itemDescription} onChange={(e) => handleEditItemChange(index, 'itemDescription', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
@@ -365,14 +424,18 @@ export default function PurchaseRequestScreen() {
                                     {items.map((item, index) => (
                                         <tr key={index} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-4 py-3">
-                                                <input
-                                                    type="text"
+                                            <select
                                                     value={item.itemNumber}
-                                                    onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)}
+                                                onChange={(e) => handleItemSelect(index, e.target.value)}
                                                     required
                                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                    placeholder="SKU/No."
-                                                />
+                                            >
+                                                <option value="" disabled>Select Item</option>
+                                                {inventoryList.map((invItem) => {
+                                                    const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                                    return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
+                                                })}
+                                            </select>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <input

@@ -14,10 +14,12 @@ export default function StaffRequestScreen() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [departmentsList, setDepartmentsList] = useState([]);
     const [unitsList, setUnitsList] = useState([]);
+    const [inventoryList, setInventoryList] = useState([]);
 
     useEffect(() => {
         fetchDepartments();
         fetchUnits();
+        fetchInventory();
     }, []);
 
     const fetchDepartments = async () => {
@@ -48,9 +50,36 @@ export default function StaffRequestScreen() {
         }
     };
 
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            if (error) throw error;
+            if (data) {
+                setInventoryList(data);
+            }
+        } catch (err) {
+            console.error("Error fetching inventory:", err);
+        }
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
         newItems[index][field] = value;
+        setItems(newItems);
+    };
+
+    const handleItemSelect = (index, selectedItemNumber) => {
+        const newItems = [...items];
+        newItems[index].itemNumber = selectedItemNumber;
+        
+        const selectedInventoryItem = inventoryList.find(i => `ITM-${String(i.item_id).padStart(4, '0')}` === selectedItemNumber);
+        if (selectedInventoryItem) {
+            newItems[index].itemDescription = selectedInventoryItem.description 
+                ? `${selectedInventoryItem.item} - ${selectedInventoryItem.description}` 
+                : selectedInventoryItem.item;
+            newItems[index].unit = selectedInventoryItem.unit_name || selectedInventoryItem.unit || '';
+        }
+        
         setItems(newItems);
     };
 
@@ -105,10 +134,11 @@ export default function StaffRequestScreen() {
             const newId = `REQ-${currentYear}-${String(nextNum).padStart(3, '0')}`;
 
             const { error } = await supabase.from('requisition_issuance').insert([{
-                id: newId,
-                department,
-                name,
-                designation,
+                // Change 'id' below to match your actual column name if it's different (e.g., req_id: newId)
+                id: request_id,
+                dept: department,
+                name: name,
+                designation: designation,
                 requestDate,      // Change to request_date if your table column uses snake_case
                 items,
                 status: 'Pending'
@@ -211,14 +241,20 @@ export default function StaffRequestScreen() {
                                 {items.map((item, index) => (
                                     <tr key={index} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-3">
-                                            <input
-                                                type="text"
+                                            <select
                                                 value={item.itemNumber}
-                                                onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)}
+                                                onChange={(e) => handleItemSelect(index, e.target.value)}
                                                 required
                                                 className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                placeholder="SKU or Number"
-                                            />
+                                            >
+                                                <option value="" disabled>Select Item</option>
+                                                {inventoryList.map((invItem) => {
+                                                    const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                                    return (
+                                                        <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>
+                                                    );
+                                                })}
+                                            </select>
                                         </td>
                                         <td className="px-4 py-3">
                                             <input
