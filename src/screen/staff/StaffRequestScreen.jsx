@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import StaffNavigation from "./StaffNavigation";
@@ -12,7 +12,42 @@ export default function StaffRequestScreen() {
     const [requestDate, setRequestDate] = useState(new Date().toISOString().split('T')[0]);
     const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [departmentsList, setDepartmentsList] = useState([]);
+    const [unitsList, setUnitsList] = useState([]);
+
+    useEffect(() => {
+        fetchDepartments();
+        fetchUnits();
+    }, []);
+
+    const fetchDepartments = async () => {
+        try {
+            const { data, error } = await supabase.from('department').select('*');
+            console.log("Raw departments data from Supabase:", data);
+            if (error) throw error;
+            if (data) {
+                const mappedList = data.map(d => d.name || d.Name || d.department || d.Department || d.department_name || Object.values(d).find(v => typeof v === 'string')).filter(Boolean);
+                console.log("Mapped departments dropdown list:", mappedList);
+                setDepartmentsList(mappedList);
+            }
+        } catch (err) {
+            console.error("Error fetching departments:", err);
+        }
+    };
     
+    const fetchUnits = async () => {
+        try {
+            const { data, error } = await supabase.from('units').select('*');
+            if (error) throw error;
+            if (data) {
+                const mappedList = data.map(d => d.name || d.Name || d.unit || d.Unit || Object.values(d).find(v => typeof v === 'string')).filter(Boolean);
+                setUnitsList(mappedList.sort());
+            }
+        } catch (err) {
+            console.error("Error fetching units:", err);
+        }
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
         newItems[index][field] = value;
@@ -26,6 +61,25 @@ export default function StaffRequestScreen() {
     const handleRemoveItem = (index) => {
         const newItems = items.filter((_, i) => i !== index);
         setItems(newItems);
+    };
+
+    const handleAddUnit = async (index) => {
+        const newUnit = window.prompt("Enter new unit name:");
+        if (newUnit && newUnit.trim() !== '') {
+            const lowerUnit = newUnit.trim().toLowerCase();
+            if (!unitsList.includes(lowerUnit)) {
+                try {
+                    const { error } = await supabase.from('units').insert([{ name: lowerUnit }]);
+                    if (error) throw error;
+                    setUnitsList(prev => [...prev, lowerUnit].sort());
+                } catch (err) {
+                    console.error("Error adding unit:", err.message);
+                    alert("Failed to add new unit.");
+                    return;
+                }
+            }
+            handleItemChange(index, 'unit', lowerUnit);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -89,15 +143,18 @@ export default function StaffRequestScreen() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <input
-                                    type="text"
+                                <select
                                     id="department"
                                     value={department}
                                     onChange={(e) => setDepartment(e.target.value)}
                                     required
                                     className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="e.g., IT, Sales"
-                                />
+                                >
+                                    <option value="" disabled>Select a department</option>
+                                    {departmentsList.map((dept, index) => (
+                                        <option key={index} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
@@ -144,9 +201,9 @@ export default function StaffRequestScreen() {
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">Item Description</th>
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Unit</th>
                                     <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
                                 </tr>
                             </thead>
@@ -185,14 +242,24 @@ export default function StaffRequestScreen() {
                                             />
                                         </td>
                                         <td className="px-4 py-3">
-                                            <input
-                                                type="text"
-                                                value={item.unit}
-                                                onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                                                required
-                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                placeholder="e.g. pcs, boxes"
-                                            />
+                                            <div className="flex space-x-2">
+                                                <select
+                                                    value={item.unit}
+                                                    onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                                    required
+                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                >
+                                                    <option value="" disabled>Unit</option>
+                                                    {unitsList.map((u, i) => (
+                                                        <option key={i} value={u}>{u}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleAddUnit(index)}
+                                                    className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                                >+ Add</button>
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             {items.length > 1 && (
