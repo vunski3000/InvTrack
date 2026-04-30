@@ -135,7 +135,7 @@ export default function StaffRequestScreen() {
 
             const { error } = await supabase.from('requisition_issuance').insert([{
                 // Change 'id' below to match your actual column name if it's different (e.g., req_id: newId)
-                id: request_id,
+                id: newId,
                 dept: department,
                 name: name,
                 designation: designation,
