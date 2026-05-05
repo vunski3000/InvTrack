@@ -70,9 +70,9 @@ export default function PersonnelScreen() {
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to remove this personnel?")) {
             try {
-                const { error } = await supabase.from('personnel').delete().eq('id', id);
+                const { error } = await supabase.from('personnel').delete().eq('personnel_id', id);
                 if (error) throw error;
-                setPersonnel(prev => prev.filter(p => p.id !== id));
+                setPersonnel(prev => prev.filter(p => p.personnel_id !== id));
             } catch (err) {
                 console.error("Error deleting personnel:", err.message);
                 alert("Failed to delete personnel: " + err.message);
@@ -173,13 +173,13 @@ export default function PersonnelScreen() {
                                     </tr>
                                 ) : personnel.length > 0 ? (
                                     personnel.map((person) => (
-                                        <tr key={person.id || person.name} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatPersonnelId(person.personnel_id || person.id)}</td>
+                                        <tr key={person.personnel_id || person.name} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatPersonnelId(person.personnel_id)}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{person.name}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{person.department || person.dept || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{person.designation || '-'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button onClick={() => handleDelete(person.id)} className="text-red-600 hover:text-red-900 transition-colors">Remove</button>
+                                                <button onClick={() => handleDelete(person.personnel_id)} className="text-red-600 hover:text-red-900 transition-colors">Remove</button>
                                             </td>
                                         </tr>
                                     ))

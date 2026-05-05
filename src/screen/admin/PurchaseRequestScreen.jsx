@@ -76,11 +76,11 @@ export default function PurchaseRequestScreen() {
                 const { error } = await supabase
                     .from('purchase_requests')
                     .delete()
-                    .eq('id', selectedRequest.id);
+                    .eq('pr_id', selectedRequest.pr_id);
 
                 if (error) throw error;
 
-                setPurchaseRequests(prev => prev.filter(p => p.id !== selectedRequest.id));
+                setPurchaseRequests(prev => prev.filter(p => p.pr_id !== selectedRequest.pr_id));
                 closeModal();
                 alert('Purchase request deleted successfully.');
             } catch (error) {
@@ -101,12 +101,12 @@ export default function PurchaseRequestScreen() {
                     requestDate: editForm.requestDate,
                     items: editForm.items
                 })
-                .eq('id', editForm.id)
+                .eq('pr_id', editForm.pr_id)
                 .select();
 
             if (error) throw error;
 
-            setPurchaseRequests(prev => prev.map(p => p.id === editForm.id ? data[0] : p));
+            setPurchaseRequests(prev => prev.map(p => p.pr_id === editForm.pr_id ? data[0] : p));
             setSelectedRequest(data[0]);
             setIsEditingRequest(false);
             alert('Purchase request updated successfully!');
@@ -147,7 +147,7 @@ export default function PurchaseRequestScreen() {
     };
 
     const handleGeneratePR = () => {
-        alert(`Generating Purchase Request document for: ${selectedRequest.id}`);
+        alert(`Generating Purchase Request document for: ${selectedRequest.pr_id}`);
     };
 
     const getStatusStyle = (status) => {
@@ -197,7 +197,7 @@ export default function PurchaseRequestScreen() {
         const newId = `PR-${new Date().getFullYear()}-${randomNum}`;
         
         const newRequest = {
-            id: newId,
+            pr_id: newId,
             requesterName,
             department,
             requestDate,
@@ -321,7 +321,7 @@ export default function PurchaseRequestScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">{isEditingRequest ? `Edit Purchase Request: ${selectedRequest.id}` : <>Purchase Request Details: <span className="text-indigo-600">{selectedRequest.id}</span></>}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingRequest ? `Edit Purchase Request: ${selectedRequest.pr_id}` : <>Purchase Request Details: <span className="text-indigo-600">{selectedRequest.pr_id}</span></>}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
@@ -570,9 +570,9 @@ export default function PurchaseRequestScreen() {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {purchaseRequests.map((req) => (
-                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={req.pr_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{req.id}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{req.pr_id}</div>
                                                     <div className="text-sm text-gray-500">{req.requesterName}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.department}</td>

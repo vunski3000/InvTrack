@@ -92,7 +92,7 @@ export default function PurchaseOrderScreen() {
         const newId = `PO-${new Date().getFullYear()}-${randomNum}`;
         
         const newOrder = {
-            id: newId,
+            po_id: newId,
             requesterName,
             department,
             requestDate,
@@ -144,11 +144,11 @@ export default function PurchaseOrderScreen() {
                 const { error } = await supabase
                     .from('purchase_orders')
                     .delete()
-                    .eq('id', selectedOrder.id);
+                    .eq('po_id', selectedOrder.po_id);
 
                 if (error) throw error;
 
-                setPurchaseOrders(prev => prev.filter(p => p.id !== selectedOrder.id));
+                setPurchaseOrders(prev => prev.filter(p => p.po_id !== selectedOrder.po_id));
                 closeModal();
                 alert('Purchase order deleted successfully.');
             } catch (error) {
@@ -169,12 +169,12 @@ export default function PurchaseOrderScreen() {
                     requestDate: editForm.requestDate,
                     items: editForm.items
                 })
-                .eq('id', editForm.id)
+                .eq('po_id', editForm.po_id)
                 .select();
 
             if (error) throw error;
 
-            setPurchaseOrders(prev => prev.map(p => p.id === editForm.id ? data[0] : p));
+            setPurchaseOrders(prev => prev.map(p => p.po_id === editForm.po_id ? data[0] : p));
             setSelectedOrder(data[0]);
             setIsEditingOrder(false);
             alert('Purchase order updated successfully!');
@@ -215,7 +215,7 @@ export default function PurchaseOrderScreen() {
     };
 
     const handleGeneratePO = () => {
-        alert(`Generating Purchase Order document for: ${selectedOrder.id}`);
+        alert(`Generating Purchase Order document for: ${selectedOrder.po_id}`);
     };
 
     const renderEditForm = () => (
@@ -326,7 +326,7 @@ export default function PurchaseOrderScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">{isEditingOrder ? `Edit Purchase Order: ${selectedOrder.id}` : <>Purchase Order Details: <span className="text-indigo-600">{selectedOrder.id}</span></>}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingOrder ? `Edit Purchase Order: ${selectedOrder.po_id}` : <>Purchase Order Details: <span className="text-indigo-600">{selectedOrder.po_id}</span></>}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
@@ -575,9 +575,9 @@ export default function PurchaseOrderScreen() {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {purchaseOrders.map((order) => (
-                                            <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={order.po_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{order.id}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{order.po_id}</div>
                                                     <div className="text-sm text-gray-500">{order.requesterName}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.department}</td>

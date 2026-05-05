@@ -265,13 +265,13 @@ export default function InventoryScreen() {
         try {
             const { data: yearPpmps } = await supabase
                 .from('ppmps')
-                .select('id')
-                .ilike('id', `PPMP-${ppmpForm.year}-%`);
+                .select('ppmp_id')
+                .ilike('ppmp_id', `PPMP-${ppmpForm.year}-%`);
 
             let nextNum = 1;
             if (yearPpmps && yearPpmps.length > 0) {
                 const nums = yearPpmps.map(p => {
-                    const parts = p.id.split('-');
+                    const parts = p.ppmp_id.split('-');
                     return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
                 }).filter(n => !isNaN(n));
                 
@@ -287,7 +287,7 @@ export default function InventoryScreen() {
                 unit: i.unit_name || i.unit || ''
             }));
 
-            const { error } = await supabase.from('ppmps').insert([{ id: newId, name: ppmpForm.name, department: ppmpForm.department, year: ppmpForm.year, items: mappedItems }]);
+            const { error } = await supabase.from('ppmps').insert([{ ppmp_id: newId, name: ppmpForm.name, department: ppmpForm.department, year: ppmpForm.year, items: mappedItems }]);
             if (error) throw error;
 
             alert('PPMP created successfully!');

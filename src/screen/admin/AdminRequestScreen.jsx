@@ -1,38 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Navigation from './Navigation';
+import { supabase } from '../../supabaseClient';
 
 export default function AdminRequestScreen() {
     const navigate = useNavigate();
 
-    // Mock data reflecting the structure submitted from RequestScreen (Staff side)
-    const [requests, setRequests] = useState([
-        {
-            id: 'REQ-2026-001',
-            name: 'Alice Johnson',
-            designation: 'Staff',
-            department: 'IT',
-            requestDate: '2026-04-20',
-            status: 'Pending',
-            items: [
-                { itemNumber: 'LAP-01', itemDescription: 'Developer Laptop', quantity: '1', unit: 'pc' },
-                { itemNumber: 'MOU-05', itemDescription: 'Wireless Mouse', quantity: '1', unit: 'pc' }
-            ]
-        },
-        {
-            id: 'REQ-2026-002',
-            name: 'Bob Smith',
-            designation: 'Manager',
-            department: 'Sales',
-            requestDate: '2026-04-21',
-            status: 'Approved',
-            items: [
-                { itemNumber: 'PEN-01', itemDescription: 'Blue Pens', quantity: '10', unit: 'boxes' },
-                { itemNumber: 'PAP-02', itemDescription: 'A4 Paper', quantity: '5', unit: 'reams' }
-            ]
+    const [requests, setRequests] = useState([]);
+
+    useEffect(() => {
+        fetchRequests();
+    }, []);
+
+    const fetchRequests = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('requisition_issuance')
+                .select('*')
+                .order('request_date', { ascending: false });
+            
+            if (error) throw error;
+            if (data) {
+                setRequests(data);
+            }
+        } catch (err) {
+            console.error("Error fetching requests:", err);
         }
-    ]);
+    };
 
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,11 +42,23 @@ export default function AdminRequestScreen() {
         setSelectedRequest(null);
     };
 
-    const updateStatus = (newStatus) => {
-        setRequests(prev => prev.map(req => 
-            req.id === selectedRequest.id ? { ...req, status: newStatus } : req
-        ));
-        setSelectedRequest({ ...selectedRequest, status: newStatus });
+    const updateStatus = async (newStatus) => {
+        try {
+            const { error } = await supabase
+                .from('requisition_issuance')
+                .update({ status: newStatus })
+                .eq('request_id', selectedRequest.request_id);
+
+            if (error) throw error;
+
+            setRequests(prev => prev.map(req => 
+                req.request_id === selectedRequest.request_id ? { ...req, status: newStatus } : req
+            ));
+            setSelectedRequest({ ...selectedRequest, status: newStatus });
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Failed to update status. Please try again.');
+        }
     };
 
     const getStatusStyle = (status) => {
@@ -74,7 +81,7 @@ export default function AdminRequestScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">Requisition Details: <span className="text-indigo-600">{selectedRequest.id}</span></h3>
+                            <h3 className="text-2xl font-bold text-gray-800">Requisition Details: <span className="text-indigo-600">{selectedRequest.request_id}</span></h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
@@ -90,11 +97,11 @@ export default function AdminRequestScreen() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.department}</p>
+                                <p className="font-semibold text-gray-900">{selectedRequest.dept}</p>
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500 mb-1">Date of Request</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.requestDate}</p>
+                                <p className="font-semibold text-gray-900">{selectedRequest.request_date}</p>
                             </div>
                         </div>
 
@@ -156,13 +163,13 @@ export default function AdminRequestScreen() {
                 <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
                     <ul className="divide-y divide-gray-200">
                         {requests.map((req) => (
-                            <li key={req.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(req)}>
+                            <li key={req.request_id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(req)}>
                                 <div className="flex flex-col">
-                                    <span className="text-lg font-medium text-gray-900">{req.id} - {req.name}</span>
-                                    <span className="text-sm text-gray-500">{req.department} Department • {req.designation}</span>
+                                    <span className="text-lg font-medium text-gray-900">{req.request_id} - {req.name}</span>
+                                    <span className="text-sm text-gray-500">{req.dept} Department • {req.designation}</span>
                                 </div>
                                 <div className="flex items-center space-x-4">
-                                    <span className="text-sm text-gray-500 hidden sm:block">{req.requestDate}</span>
+                                    <span className="text-sm text-gray-500 hidden sm:block">{req.request_date}</span>
                                     <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(req.status)}`}>
                                         {req.status}
                                     </span>

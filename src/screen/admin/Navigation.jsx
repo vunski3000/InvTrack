@@ -8,6 +8,8 @@ export default function Navigation() {
     const [procurementOpen, setProcurementOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [notificationOpen, setNotificationOpen] = useState(false);
+    const [notifications, setNotifications] = useState([]);
+    const [hasUnread, setHasUnread] = useState(false);
     const [username, setUsername] = useState('');
 
     useEffect(() => {
@@ -29,7 +31,39 @@ export default function Navigation() {
         };
 
         fetchUser();
+
+        // Listen for new requests in realtime
+        const channel = supabase
+            .channel('admin-notifications')
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'requisition_issuance' },
+                (payload) => {
+                    const newReq = payload.new;
+                    setNotifications(prev => [
+                        {
+                            id: newReq.request_id,
+                            message: `New request from ${newReq.name} (${newReq.dept})`,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        },
+                        ...prev
+                    ]);
+                    setHasUnread(true);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, []);
+
+    const handleNotificationClick = () => {
+        setNotificationOpen(!notificationOpen);
+        if (!notificationOpen) {
+            setHasUnread(false); // Mark as read when opening
+        }
+    };
 
     // Helper to dynamically highlight top-level tabs based on current route
     const isActiveTab = (paths) => paths.includes(location.pathname)
@@ -90,15 +124,35 @@ export default function Navigation() {
                     {/* Notification Icon */}
                     <div className="relative">
                         <button 
-                            onClick={() => setNotificationOpen(!notificationOpen)} 
-                            onBlur={() => setTimeout(() => setNotificationOpen(false), 150)} 
-                            className="p-2 rounded-full text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer focus:outline-none"
+                            onClick={handleNotificationClick} 
+                            onBlur={() => setTimeout(() => setNotificationOpen(false), 200)} 
+                            className="p-2 rounded-full text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer focus:outline-none relative"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                            {hasUnread && (
+                                <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-indigo-700"></span>
+                            )}
                         </button>
                         {notificationOpen && (
-                            <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-4 px-4 z-50">
-                                <p className="text-sm text-gray-500 text-center font-medium">There are no new notifications.</p>
+                            <div className="absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 py-2 z-50 max-h-96 overflow-y-auto">
+                                <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center mb-2">
+                                    <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
+                                    {notifications.length > 0 && (
+                                        <button onMouseDown={() => setNotifications([])} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear all</button>
+                                    )}
+                                </div>
+                                {notifications.length === 0 ? (
+                                    <p className="text-sm text-gray-500 text-center font-medium py-4">There are no new notifications.</p>
+                                ) : (
+                                    <ul className="divide-y divide-gray-100">
+                                        {notifications.map((notif, index) => (
+                                            <li key={index} className="px-4 py-3 hover:bg-gray-50 cursor-pointer" onMouseDown={() => navigate('/admin-requests')}>
+                                                <p className="text-sm text-gray-800">{notif.message}</p>
+                                                <span className="text-xs text-gray-400 mt-1 block">{notif.time}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         )}
                     </div>

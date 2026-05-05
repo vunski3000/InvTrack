@@ -118,15 +118,17 @@ export default function StaffRequestScreen() {
         try {
             // Auto-generate an ID like REQ-2026-001
             const currentYear = new Date().getFullYear().toString();
-            const { data: existingReqs } = await supabase
+            const { data: existingReqs, error: fetchError } = await supabase
                 .from('requisition_issuance')
-                .select('id')
-                .ilike('id', `REQ-${currentYear}-%`);
+                .select('request_id')
+                .ilike('request_id', `REQ-${currentYear}-%`);
+
+            if (fetchError) throw fetchError;
 
             let nextNum = 1;
             if (existingReqs && existingReqs.length > 0) {
                 const nums = existingReqs.map(r => {
-                    const parts = r.id.split('-');
+                    const parts = r.request_id.split('-');
                     return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
                 }).filter(n => !isNaN(n));
                 if (nums.length > 0) nextNum = Math.max(...nums) + 1;
@@ -134,12 +136,11 @@ export default function StaffRequestScreen() {
             const newId = `REQ-${currentYear}-${String(nextNum).padStart(3, '0')}`;
 
             const { error } = await supabase.from('requisition_issuance').insert([{
-                // Change 'id' below to match your actual column name if it's different (e.g., req_id: newId)
-                id: newId,
+                request_id: newId,
                 dept: department,
                 name: name,
                 designation: designation,
-                requestDate,      // Change to request_date if your table column uses snake_case
+                request_date: requestDate, // Assuming your database uses snake_case 'request_date'
                 items,
                 status: 'Pending'
             }]);

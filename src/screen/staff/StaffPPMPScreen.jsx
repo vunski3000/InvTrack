@@ -60,7 +60,7 @@ export default function StaffPPMPScreen() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         try {
-            const { error } = await supabase.from('ppmps').update({ items: ppmpForm.items }).eq('id', ppmpForm.id);
+            const { error } = await supabase.from('ppmps').update({ items: ppmpForm.items }).eq('ppmp_id', ppmpForm.ppmp_id);
             if (error) throw error;
             
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
@@ -218,7 +218,7 @@ export default function StaffPPMPScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">{isEditingPPMP ? `Edit PPMP: ${selectedPPMP.id}` : 'PPMP Details'}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingPPMP ? `Edit PPMP: ${selectedPPMP.ppmp_id}` : 'PPMP Details'}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
@@ -295,7 +295,7 @@ export default function StaffPPMPScreen() {
                 <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
                     <ul className="divide-y divide-gray-200">
                         {ppmps.map((ppmp) => (
-                            <li key={ppmp.id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(ppmp)}>
+                            <li key={ppmp.ppmp_id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(ppmp)}>
                                 <span className="text-lg font-medium text-gray-900">{ppmp.name}</span>
                                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                             </li>
