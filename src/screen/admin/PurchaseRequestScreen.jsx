@@ -17,6 +17,7 @@ export default function PurchaseRequestScreen() {
     
     useEffect(() => {
         fetchInventory();
+        fetchPurchaseRequests();
     }, []);
 
     const fetchInventory = async () => {
@@ -31,30 +32,22 @@ export default function PurchaseRequestScreen() {
         }
     };
 
-    // Mock data for Purchase Requests
-    const [purchaseRequests, setPurchaseRequests] = useState([
-        {
-            id: 'PR-2026-001',
-            requesterName: 'Alice Johnson',
-            department: 'HR',
-            requestDate: '2026-04-15',
-            status: 'Pending',
-            items: [
-                { itemNumber: 'PEN-01', itemDescription: 'Blue Pens', quantity: 10, unit: 'boxes' },
-                { itemNumber: 'PAP-02', itemDescription: 'A4 Paper', quantity: 5, unit: 'reams' }
-            ]
-        },
-        {
-            id: 'PR-2026-002',
-            requesterName: 'Bob Smith',
-            department: 'Finance',
-            requestDate: '2026-04-16',
-            status: 'Approved',
-            items: [
-                { itemNumber: 'LAP-01', itemDescription: 'Developer Laptop', quantity: 1, unit: 'pc' }
-            ]
+    const fetchPurchaseRequests = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('purchase_requests')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            if (data) {
+                setPurchaseRequests(data);
+            }
+        } catch (err) {
+            console.error("Error fetching purchase requests:", err);
         }
-    ]);
+    };
+
+    const [purchaseRequests, setPurchaseRequests] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditingRequest, setIsEditingRequest] = useState(false);
@@ -77,18 +70,50 @@ export default function PurchaseRequestScreen() {
         setIsEditingRequest(true);
     };
 
-    const handleDeleteRequest = () => {
+    const handleDeleteRequest = async () => {
         if (window.confirm(`Are you sure you want to delete purchase request ${selectedRequest.id}?`)) {
-            setPurchaseRequests(prev => prev.filter(p => p.id !== selectedRequest.id));
-            closeModal();
+            try {
+                const { error } = await supabase
+                    .from('purchase_requests')
+                    .delete()
+                    .eq('id', selectedRequest.id);
+
+                if (error) throw error;
+
+                setPurchaseRequests(prev => prev.filter(p => p.id !== selectedRequest.id));
+                closeModal();
+                alert('Purchase request deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting request:', error);
+                alert('Failed to delete request.');
+            }
         }
     };
 
-    const handleSaveEdit = (e) => {
+    const handleSaveEdit = async (e) => {
         e.preventDefault();
-        setPurchaseRequests(prev => prev.map(p => p.id === editForm.id ? editForm : p));
-        setSelectedRequest(editForm);
-        setIsEditingRequest(false);
+        try {
+            const { data, error } = await supabase
+                .from('purchase_requests')
+                .update({
+                    requesterName: editForm.requesterName,
+                    department: editForm.department,
+                    requestDate: editForm.requestDate,
+                    items: editForm.items
+                })
+                .eq('id', editForm.id)
+                .select();
+
+            if (error) throw error;
+
+            setPurchaseRequests(prev => prev.map(p => p.id === editForm.id ? data[0] : p));
+            setSelectedRequest(data[0]);
+            setIsEditingRequest(false);
+            alert('Purchase request updated successfully!');
+        } catch (error) {
+            console.error('Error updating request:', error);
+            alert('Failed to update request.');
+        }
     };
 
     const handleEditItemSelect = (index, selectedItemNumber) => {
@@ -164,15 +189,41 @@ export default function PurchaseRequestScreen() {
         setItems(newItems);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Purchase Request submitted:', { requesterName, department, requestDate, items });
-        // TODO: Integrate actual purchase request logic here
-        alert('Purchase Request submitted successfully!');
-        setRequesterName('');
-        setDepartment('');
-        setRequestDate(new Date().toISOString().split('T')[0]);
-        setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+        
+        // Generate a custom ID, e.g., PR-2026-1234
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const newId = `PR-${new Date().getFullYear()}-${randomNum}`;
+        
+        const newRequest = {
+            id: newId,
+            requesterName,
+            department,
+            requestDate,
+            status: 'Pending',
+            items
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('purchase_requests')
+                .insert([newRequest])
+                .select();
+
+            if (error) throw error;
+            
+            alert('Purchase Request submitted successfully!');
+            setPurchaseRequests(prev => [data[0], ...prev]);
+            setRequesterName('');
+            setDepartment('');
+            setRequestDate(new Date().toISOString().split('T')[0]);
+            setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+            setActiveTab('list'); // Switch to the list tab after submitting
+        } catch (error) {
+            console.error('Error submitting purchase request:', error);
+            alert('Failed to submit Purchase Request. Please check console for details.');
+        }
     };
 
     const renderEditForm = () => (

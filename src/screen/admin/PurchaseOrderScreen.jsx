@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import Navigation from './Navigation';
+import { supabase } from '../../supabaseClient';
 
 export default function PurchaseOrderScreen() {
     const navigate = useNavigate();
@@ -13,38 +14,64 @@ export default function PurchaseOrderScreen() {
     const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     const [activeTab, setActiveTab] = useState('create');
 
-    // Mock data for Purchase Orders
-    const [purchaseOrders, setPurchaseOrders] = useState([
-        {
-            id: 'PO-1001',
-            requesterName: 'John Doe',
-            department: 'Finance',
-            requestDate: '2026-04-08',
-            status: 'Approved',
-            items: [
-                { itemNumber: 'PEN-01', itemDescription: 'Blue Pens', quantity: 50, unit: 'boxes' },
-                { itemNumber: 'PAP-02', itemDescription: 'A4 Paper', quantity: 20, unit: 'reams' }
-            ]
-        },
-        {
-            id: 'PO-1002',
-            requesterName: 'Jane Smith',
-            department: 'IT',
-            requestDate: '2026-04-09',
-            status: 'Pending',
-            items: [
-                { itemNumber: 'LAP-01', itemDescription: 'Developer Laptops', quantity: 2, unit: 'pcs' },
-                { itemNumber: 'MOU-05', itemDescription: 'Wireless Mouse', quantity: 5, unit: 'pcs' }
-            ]
+    const [purchaseOrders, setPurchaseOrders] = useState([]);
+    const [inventoryList, setInventoryList] = useState([]);
+
+    useEffect(() => {
+        fetchInventory();
+        fetchPurchaseOrders();
+    }, []);
+
+    const fetchPurchaseOrders = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('purchase_orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            if (data) {
+                setPurchaseOrders(data);
+            }
+        } catch (err) {
+            console.error("Error fetching purchase orders:", err);
         }
-    ]);
+    };
+
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            if (error) throw error;
+            if (data) {
+                setInventoryList(data);
+            }
+        } catch (err) {
+            console.error("Error fetching inventory:", err);
+        }
+    };
 
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditingOrder, setIsEditingOrder] = useState(false);
+    const [editForm, setEditForm] = useState(null);
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
         newItems[index][field] = value;
+        setItems(newItems);
+    };
+
+    const handleItemSelect = (index, selectedItemNumber) => {
+        const newItems = [...items];
+        newItems[index].itemNumber = selectedItemNumber;
+        
+        const selectedInventoryItem = inventoryList.find(i => `ITM-${String(i.item_id).padStart(4, '0')}` === selectedItemNumber);
+        if (selectedInventoryItem) {
+            newItems[index].itemDescription = selectedInventoryItem.description 
+                ? `${selectedInventoryItem.item} - ${selectedInventoryItem.description}` 
+                : selectedInventoryItem.item;
+            newItems[index].unit = selectedInventoryItem.unit_name || selectedInventoryItem.unit || '';
+        }
+        
         setItems(newItems);
     };
 
@@ -57,15 +84,41 @@ export default function PurchaseOrderScreen() {
         setItems(newItems);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Purchase Order submitted:', { requesterName, department, requestDate, items });
-        // TODO: Integrate actual purchase order logic here
-        alert('Purchase Order created successfully!');
-        setRequesterName('');
-        setDepartment('');
-        setRequestDate(new Date().toISOString().split('T')[0]);
-        setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+        
+        // Generate a custom ID, e.g., PO-2026-1234
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        const newId = `PO-${new Date().getFullYear()}-${randomNum}`;
+        
+        const newOrder = {
+            id: newId,
+            requesterName,
+            department,
+            requestDate,
+            status: 'Pending',
+            items
+        };
+
+        try {
+            const { data, error } = await supabase
+                .from('purchase_orders')
+                .insert([newOrder])
+                .select();
+
+            if (error) throw error;
+            
+            alert('Purchase Order created successfully!');
+            setPurchaseOrders(prev => [data[0], ...prev]);
+            setRequesterName('');
+            setDepartment('');
+            setRequestDate(new Date().toISOString().split('T')[0]);
+            setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+            setActiveTab('list'); // Switch to the list tab after submitting
+        } catch (error) {
+            console.error('Error submitting purchase order:', error);
+            alert('Failed to create Purchase Order. Please check console for details.');
+        }
     };
 
     const handleViewDetails = (order) => {
@@ -76,7 +129,182 @@ export default function PurchaseOrderScreen() {
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedOrder(null);
+        setIsEditingOrder(false);
+        setEditForm(null);
     };
+
+    const handleEditOrder = () => {
+        setEditForm(JSON.parse(JSON.stringify(selectedOrder))); // Deep copy
+        setIsEditingOrder(true);
+    };
+
+    const handleDeleteOrder = async () => {
+        if (window.confirm(`Are you sure you want to delete purchase order ${selectedOrder.id}?`)) {
+            try {
+                const { error } = await supabase
+                    .from('purchase_orders')
+                    .delete()
+                    .eq('id', selectedOrder.id);
+
+                if (error) throw error;
+
+                setPurchaseOrders(prev => prev.filter(p => p.id !== selectedOrder.id));
+                closeModal();
+                alert('Purchase order deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting order:', error);
+                alert('Failed to delete order.');
+            }
+        }
+    };
+
+    const handleSaveEdit = async (e) => {
+        e.preventDefault();
+        try {
+            const { data, error } = await supabase
+                .from('purchase_orders')
+                .update({
+                    requesterName: editForm.requesterName,
+                    department: editForm.department,
+                    requestDate: editForm.requestDate,
+                    items: editForm.items
+                })
+                .eq('id', editForm.id)
+                .select();
+
+            if (error) throw error;
+
+            setPurchaseOrders(prev => prev.map(p => p.id === editForm.id ? data[0] : p));
+            setSelectedOrder(data[0]);
+            setIsEditingOrder(false);
+            alert('Purchase order updated successfully!');
+        } catch (error) {
+            console.error('Error updating order:', error);
+            alert('Failed to update order.');
+        }
+    };
+
+    const handleEditItemSelect = (index, selectedItemNumber) => {
+        const newItems = [...editForm.items];
+        newItems[index].itemNumber = selectedItemNumber;
+        
+        const selectedInventoryItem = inventoryList.find(i => `ITM-${String(i.item_id).padStart(4, '0')}` === selectedItemNumber);
+        if (selectedInventoryItem) {
+            newItems[index].itemDescription = selectedInventoryItem.description 
+                ? `${selectedInventoryItem.item} - ${selectedInventoryItem.description}` 
+                : selectedInventoryItem.item;
+            newItems[index].unit = selectedInventoryItem.unit_name || selectedInventoryItem.unit || '';
+        }
+        
+        setEditForm({ ...editForm, items: newItems });
+    };
+
+    const handleEditItemChange = (index, field, value) => {
+        const newItems = [...editForm.items];
+        newItems[index][field] = value;
+        setEditForm({ ...editForm, items: newItems });
+    };
+
+    const handleAddEditItem = () => {
+        setEditForm({ ...editForm, items: [...editForm.items, { itemNumber: '', itemDescription: '', quantity: '', unit: '' }] });
+    };
+
+    const handleRemoveEditItem = (index) => {
+        const newItems = editForm.items.filter((_, i) => i !== index);
+        setEditForm({ ...editForm, items: newItems });
+    };
+
+    const handleGeneratePO = () => {
+        alert(`Generating Purchase Order document for: ${selectedOrder.id}`);
+    };
+
+    const renderEditForm = () => (
+        <form onSubmit={handleSaveEdit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Requester Name</label>
+                    <input type="text" required value={editForm.requesterName} onChange={e => setEditForm({...editForm, requesterName: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Alice Johnson" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <input type="text" required value={editForm.department} onChange={e => setEditForm({...editForm, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., HR" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Request</label>
+                    <input type="date" required value={editForm.requestDate} onChange={e => setEditForm({...editForm, requestDate: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                </div>
+            </div>
+
+            <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
+            <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-4 min-h-0">
+                <table className="min-w-full divide-y divide-gray-200 relative">
+                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-auto">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {editForm.items.map((item, index) => (
+                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-4 py-3">
+                                <select
+                                    required
+                                    value={item.itemNumber}
+                                    onChange={(e) => handleEditItemSelect(index, e.target.value)}
+                                    className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="" disabled>Select Item</option>
+                                    {inventoryList.map((invItem) => {
+                                        const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                        return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
+                                    })}
+                                </select>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="text" required value={item.itemDescription} onChange={(e) => handleEditItemChange(index, 'itemDescription', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="number" required min="1" value={item.quantity} onChange={(e) => handleEditItemChange(index, 'quantity', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                </td>
+                                <td className="px-4 py-3">
+                                    <input type="text" required value={item.unit} onChange={(e) => handleEditItemChange(index, 'unit', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Unit" />
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                    <button type="button" onClick={() => handleRemoveEditItem(index)} className="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {editForm.items.length === 0 && (
+                            <tr>
+                                <td colSpan="5" className="px-4 py-6 text-center text-sm text-gray-500">No items added. Click "+ Add Row" to start.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="flex justify-start mb-8 shrink-0">
+                <button type="button" onClick={handleAddEditItem} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm">
+                    + Add Row
+                </button>
+            </div>
+
+            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200 shrink-0">
+                <button type="button" onClick={() => setIsEditingOrder(false)} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
+                    Cancel
+                </button>
+                <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    );
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -96,12 +324,14 @@ export default function PurchaseOrderScreen() {
             {/* Details Modal */}
             {isModalOpen && selectedOrder && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">Purchase Order Details: <span className="text-indigo-600">{selectedOrder.id}</span></h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingOrder ? `Edit Purchase Order: ${selectedOrder.id}` : <>Purchase Order Details: <span className="text-indigo-600">{selectedOrder.id}</span></>}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
+                        {isEditingOrder && editForm ? renderEditForm() : (
+                            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                         {/* Requester Info Read-Only */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                             <div>
@@ -143,11 +373,24 @@ export default function PurchaseOrderScreen() {
                             </table>
                         </div>
 
-                        <div className="flex justify-end shrink-0 pt-4 border-t border-gray-200 mt-auto">
-                            <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Close
-                            </button>
-                        </div>
+                                <div className="flex justify-between items-center shrink-0 pt-4 border-t border-gray-200 mt-auto">
+                                    <div className="flex gap-3">
+                                        <button onClick={handleEditOrder} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                            Edit
+                                        </button>
+                                        <button onClick={handleGeneratePO} className="px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm whitespace-nowrap">
+                                            Generate Purchase Order
+                                        </button>
+                                        <button onClick={handleDeleteOrder} className="px-6 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <button onClick={closeModal} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -237,14 +480,18 @@ export default function PurchaseOrderScreen() {
                                             {items.map((item, index) => (
                                                 <tr key={index} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <input
-                                                            type="text"
+                                                        <select
                                                             value={item.itemNumber}
-                                                            onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)}
+                                                            onChange={(e) => handleItemSelect(index, e.target.value)}
                                                             required
                                                             className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                            placeholder="SKU/No."
-                                                        />
+                                                        >
+                                                            <option value="" disabled>Select Item</option>
+                                                            {inventoryList.map((invItem) => {
+                                                                const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                                                return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
+                                                            })}
+                                                        </select>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <input
