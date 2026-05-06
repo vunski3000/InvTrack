@@ -31,9 +31,13 @@ export default function AdminRequestScreen() {
 
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [remarks, setRemarks] = useState('');
+    const [adminNote, setAdminNote] = useState('');
 
     const handleViewDetails = (request) => {
         setSelectedRequest(request);
+        setRemarks(request.remarks || '');
+        setAdminNote(request.admin_note || '');
         setIsModalOpen(true);
     };
 
@@ -42,22 +46,51 @@ export default function AdminRequestScreen() {
         setSelectedRequest(null);
     };
 
+    const handleDeleteRequest = async (requestId) => {
+        if (window.confirm("Are you sure you want to delete this request?")) {
+            try {
+                const { error } = await supabase
+                    .from('requisition_issuance')
+                    .delete()
+                    .eq('request_id', requestId);
+
+                if (error) throw error;
+
+                setRequests(prev => prev.filter(req => req.request_id !== requestId));
+                closeModal();
+                alert("Request deleted successfully!");
+            } catch (error) {
+                console.error('Error deleting request:', error);
+                alert('Failed to delete request. Please try again.');
+            }
+        }
+    };
+
     const updateStatus = async (newStatus) => {
         try {
             const { error } = await supabase
                 .from('requisition_issuance')
-                .update({ status: newStatus })
+                    .update({ status: newStatus })
                 .eq('request_id', selectedRequest.request_id);
 
             if (error) throw error;
 
+            // Instantly send a notification to the specific staff member
+            const { error: notifError } = await supabase.from('notifications').insert([{
+                target_user: selectedRequest.name,
+                message: `Your requisition request (${selectedRequest.request_id}) has been ${newStatus}.`
+            }]);
+            if (notifError) console.error("Failed to send notification:", notifError);
+
             setRequests(prev => prev.map(req => 
-                req.request_id === selectedRequest.request_id ? { ...req, status: newStatus } : req
+                req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks, admin_note: adminNote } : req
             ));
-            setSelectedRequest({ ...selectedRequest, status: newStatus });
+            
+            alert(`Request ${newStatus} successfully!`);
+            closeModal();
         } catch (error) {
             console.error('Error updating status:', error);
-            alert('Failed to update status. Please try again.');
+            alert(`Failed to update status: ${error.message}`);
         }
     };
 
@@ -105,6 +138,42 @@ export default function AdminRequestScreen() {
                             </div>
                         </div>
 
+                        {/* Remarks and Notes fields */}
+                        <div className="flex flex-col space-y-4 mb-6 shrink-0">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks / Action Reason</label>
+                                {selectedRequest.status === 'Pending' ? (
+                                    <textarea
+                                        value={remarks}
+                                        onChange={(e) => setRemarks(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        rows="2"
+                                        placeholder="Why is this being approved or rejected?"
+                                    />
+                                ) : (
+                                    <p className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+                                        {selectedRequest.remarks || 'No remarks provided.'}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Notes (e.g. Incomplete items)</label>
+                                {selectedRequest.status === 'Pending' ? (
+                                    <textarea
+                                        value={adminNote}
+                                        onChange={(e) => setAdminNote(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        rows="2"
+                                        placeholder="Any additional notes?"
+                                    />
+                                ) : (
+                                    <p className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
+                                        {selectedRequest.admin_note || 'No notes provided.'}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Items Table Read-Only */}
                         <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
                         <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
@@ -142,6 +211,9 @@ export default function AdminRequestScreen() {
                                         </button>
                                     </>
                                 )}
+                                <button onClick={() => handleDeleteRequest(selectedRequest.request_id)} className="px-4 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
+                                    Delete
+                                </button>
                             </div>
                             <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
                                 Close

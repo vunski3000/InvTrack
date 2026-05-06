@@ -9,7 +9,6 @@ export default function Navigation() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    const [hasUnread, setHasUnread] = useState(false);
     const [username, setUsername] = useState('');
 
     useEffect(() => {
@@ -32,37 +31,40 @@ export default function Navigation() {
 
         fetchUser();
 
-        // Listen for new requests in realtime
-        const channel = supabase
-            .channel('admin-notifications')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'requisition_issuance' },
-                (payload) => {
-                    const newReq = payload.new;
-                    setNotifications(prev => [
-                        {
-                            id: newReq.request_id,
-                            message: `New request from ${newReq.name} (${newReq.dept})`,
-                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        },
-                        ...prev
-                    ]);
-                    setHasUnread(true);
-                }
-            )
-            .subscribe();
+        const fetchNotifications = async () => {
+            const { data, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('target_user', 'admin')
+                .eq('is_read', false)
+                .order('created_at', { ascending: false });
+            
+            if (data) {
+                setNotifications(data);
+            }
+        };
+        
+        fetchNotifications();
+
+        // Polling fallback: Fetch notifications every 3 seconds to guarantee they appear.
+        // This completely bypasses any WebSocket/Realtime connection issues.
+        const intervalId = setInterval(fetchNotifications, 3000);
 
         return () => {
-            supabase.removeChannel(channel);
+            clearInterval(intervalId);
         };
     }, []);
 
     const handleNotificationClick = () => {
         setNotificationOpen(!notificationOpen);
-        if (!notificationOpen) {
-            setHasUnread(false); // Mark as read when opening
+    };
+
+    const handleClearNotifications = async () => {
+        const unreadIds = notifications.map(n => n.id);
+        if (unreadIds.length > 0) {
+            await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
         }
+        setNotifications([]);
     };
 
     // Helper to dynamically highlight top-level tabs based on current route
@@ -129,8 +131,10 @@ export default function Navigation() {
                             className="p-2 rounded-full text-indigo-100 hover:bg-indigo-600 hover:text-white transition-colors cursor-pointer focus:outline-none relative"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-                            {hasUnread && (
-                                <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-indigo-700"></span>
+                            {notifications.length > 0 && (
+                                <span className="absolute top-0.5 right-0.5 flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold ring-2 ring-indigo-700">
+                                    {notifications.length > 99 ? '99+' : notifications.length}
+                                </span>
                             )}
                         </button>
                         {notificationOpen && (
@@ -138,7 +142,7 @@ export default function Navigation() {
                                 <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center mb-2">
                                     <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
                                     {notifications.length > 0 && (
-                                        <button onMouseDown={() => setNotifications([])} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear all</button>
+                                        <button onMouseDown={handleClearNotifications} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Clear all</button>
                                     )}
                                 </div>
                                 {notifications.length === 0 ? (
@@ -146,9 +150,11 @@ export default function Navigation() {
                                 ) : (
                                     <ul className="divide-y divide-gray-100">
                                         {notifications.map((notif, index) => (
-                                            <li key={index} className="px-4 py-3 hover:bg-gray-50 cursor-pointer" onMouseDown={() => navigate('/admin-requests')}>
+                                            <li key={notif.id || index} className="px-4 py-3 hover:bg-gray-50 cursor-pointer" onMouseDown={() => navigate('/admin-requests')}>
                                                 <p className="text-sm text-gray-800">{notif.message}</p>
-                                                <span className="text-xs text-gray-400 mt-1 block">{notif.time}</span>
+                                                <span className="text-xs text-gray-400 mt-1 block">
+                                                    {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
                                             </li>
                                         ))}
                                     </ul>

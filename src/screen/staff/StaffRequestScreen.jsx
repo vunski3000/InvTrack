@@ -20,7 +20,33 @@ export default function StaffRequestScreen() {
         fetchDepartments();
         fetchUnits();
         fetchInventory();
+        fetchMyDetails();
     }, []);
+
+    // Pre-fill fields automatically using the logged in user's personnel record
+    const fetchMyDetails = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                const staffIdString = user.email.split('@')[0];
+                const staffIdNum = parseInt(staffIdString.replace('-', ''), 10);
+                
+                const { data: personnel } = await supabase
+                    .from('personnel')
+                    .select('*')
+                    .eq('personnel_id', staffIdNum)
+                    .single();
+                
+                if (personnel) {
+                    setName(personnel.name || '');
+                    setDepartment(personnel.department || personnel.dept || '');
+                    setDesignation(personnel.designation || '');
+                }
+            }
+        } catch (err) {
+            console.error("Error fetching my details:", err);
+        }
+    };
 
     const fetchDepartments = async () => {
         try {
@@ -146,6 +172,13 @@ export default function StaffRequestScreen() {
             }]);
 
             if (error) throw error;
+
+            // Instantly send a notification to the admin
+            const { error: notifError } = await supabase.from('notifications').insert([{
+                target_user: 'admin',
+                message: `New request from ${name} (${department})`
+            }]);
+            if (notifError) console.error("Failed to send notification:", notifError);
 
             alert('Item requested successfully!');
             setDepartment('');

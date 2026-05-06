@@ -16,6 +16,7 @@ import PersonnelScreen from './screen/admin/PersonnelScreen.jsx'
 import StaffDashboardScreen from './screen/staff/StaffDashboardScreen.jsx'
 import StaffInventoryScreen from './screen/staff/StaffInventoryScreen.jsx'
 import StaffPPMPScreen from './screen/staff/StaffPPMPScreen.jsx'
+import StaffMyRequestsScreen from './screen/staff/StaffMyRequestsScreen.jsx'
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           <Route path="/staff-dashboard" element={<StaffDashboardScreen />} />
           <Route path="/staff-inventory" element={<StaffInventoryScreen />} />
           <Route path="/staff-ppmp" element={<StaffPPMPScreen />} />
+          <Route path="/my-requests" element={<StaffMyRequestsScreen />} />
         </Routes>
       </div>
     </Router>
