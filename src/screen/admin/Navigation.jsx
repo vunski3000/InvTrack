@@ -15,6 +15,11 @@ export default function Navigation() {
         const fetchUser = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user && user.email) {
+                // Ensure only admin users are displayed on the admin navigation
+                if (user.user_metadata?.role !== 'admin') {
+                    return;
+                }
+
                 // Extract the username from "username@invtrack.local"
                 const extractedUsername = user.email.split('@')[0];
                 

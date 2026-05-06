@@ -18,6 +18,11 @@ export default function StaffNavigation() {
             const { data: { user } } = await supabase.auth.getUser();
             
             if (user && user.email) {
+                // Ensure only staff users are displayed on the staff navigation
+                if (user.user_metadata?.role !== 'staff') {
+                    return;
+                }
+
                 // Extract the staff identifier (e.g. from "staff_id@invtrack.local")
                 // NOTE: This must match whatever gets saved in the "target_user" column in the DB!
                 const staffIdString = user.email.split('@')[0];
