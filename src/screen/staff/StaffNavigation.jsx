@@ -50,6 +50,9 @@ export default function StaffNavigation() {
                         .eq('is_read', false)
                         .order('created_at', { ascending: false });
                     
+                    if (error) {
+                        console.error("Error fetching staff notifications:", error.message);
+                    }
                     if (data && !error) {
                         setNotifications(data);
                     }

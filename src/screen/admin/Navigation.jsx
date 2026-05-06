@@ -44,6 +44,9 @@ export default function Navigation() {
                 .eq('is_read', false)
                 .order('created_at', { ascending: false });
             
+            if (error) {
+                console.error("Error fetching admin notifications:", error.message);
+            }
             if (data) {
                 setNotifications(data);
             }
