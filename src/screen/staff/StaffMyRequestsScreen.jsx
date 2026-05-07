@@ -90,6 +90,66 @@ export default function StaffMyRequestsScreen() {
         }
     };
 
+    const handleGenerateRequest = () => {
+        if (!selectedRequest) return;
+
+        const printWindow = window.open('', '_blank');
+        
+        const html = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Requisition Issuance - ${selectedRequest.request_id}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        h1 { text-align: center; color: #111; margin-bottom: 5px; }
+                        h3 { text-align: center; color: #555; margin-top: 0; margin-bottom: 30px; font-weight: normal; }
+                        .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                        .info-grid div { margin-bottom: 10px; }
+                        .info-label { font-size: 0.85em; color: #777; text-transform: uppercase; margin-bottom: 3px; }
+                        .info-value { font-weight: bold; font-size: 1.1em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                        th { background-color: #f9fafb; color: #555; }
+                        .status-box { padding: 15px; background-color: #f9fafb; border: 1px solid #ddd; margin-top: 30px; }
+                        .footer { margin-top: 40px; text-align: right; font-size: 0.9em; color: #666; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Requisition Issuance Form</h1>
+                    <h3>${selectedRequest.request_id}</h3>
+                    
+                    <div class="info-grid">
+                        <div><div class="info-label">Requester Name</div><div class="info-value">${selectedRequest.name}</div></div>
+                        <div><div class="info-label">Designation</div><div class="info-value">${selectedRequest.designation}</div></div>
+                        <div><div class="info-label">Department</div><div class="info-value">${selectedRequest.dept}</div></div>
+                        <div><div class="info-label">Date of Request</div><div class="info-value">${selectedRequest.request_date}</div></div>
+                    </div>
+
+                    <table>
+                        <thead><tr><th style="width: 20%">Item Number</th><th style="width: 50%">Item Description</th><th style="width: 15%">Quantity</th><th style="width: 15%">Unit</th></tr></thead>
+                        <tbody>
+                            ${selectedRequest.items.length > 0 ? selectedRequest.items.map(item => `<tr><td>${item.itemNumber}</td><td>${item.itemDescription}</td><td>${item.quantity}</td><td>${item.unit}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align: center">No items found</td></tr>'}
+                        </tbody>
+                    </table>
+                    
+                    <div class="status-box">
+                        <strong>Status:</strong> ${selectedRequest.status}
+                        ${selectedRequest.remarks ? `<br><br><strong>Remarks:</strong><br><span style="white-space: pre-wrap; font-family: monospace;">${selectedRequest.remarks}</span>` : ''}
+                    </div>
+
+                    <div class="footer"><p>Generated on: ${new Date().toLocaleDateString()}</p></div>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.onafterprint = () => printWindow.close(); printWindow.print(); }, 250);
+    };
+
     const getStatusStyle = (status) => {
         switch (status) {
             case 'Approved':
@@ -123,6 +183,7 @@ export default function StaffMyRequestsScreen() {
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
+                        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                             <div>
                                 <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
@@ -148,7 +209,7 @@ export default function StaffMyRequestsScreen() {
                                 {selectedRequest.remarks && (
                                     <div>
                                         <p className="text-sm font-medium text-gray-500 mb-1">Admin Remarks / Reason</p>
-                                        <p className="p-3 bg-indigo-50 border border-indigo-100 rounded-md text-sm text-indigo-900">
+                                        <p className="p-3 bg-indigo-50 border border-indigo-100 rounded-md text-sm text-indigo-900 whitespace-pre-wrap font-mono text-xs">
                                             {selectedRequest.remarks}
                                         </p>
                                     </div>
@@ -156,7 +217,7 @@ export default function StaffMyRequestsScreen() {
                                 {selectedRequest.admin_note && (
                                     <div>
                                         <p className="text-sm font-medium text-gray-500 mb-1">Admin Notes</p>
-                                        <p className="p-3 bg-yellow-50 border border-yellow-100 rounded-md text-sm text-yellow-900">
+                                        <p className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-900 whitespace-pre-wrap font-mono text-xs">
                                             {selectedRequest.admin_note}
                                         </p>
                                     </div>
@@ -165,7 +226,7 @@ export default function StaffMyRequestsScreen() {
                         )}
 
                         <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
-                        <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
                             <table className="min-w-full divide-y divide-gray-200 relative">
                                 <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
@@ -187,14 +248,20 @@ export default function StaffMyRequestsScreen() {
                                 </tbody>
                             </table>
                         </div>
+                        </div>
 
                         <div className="flex justify-between shrink-0 pt-4 border-t border-gray-200 mt-auto">
                             <button onClick={() => handleDeleteRequest(selectedRequest.request_id)} className="px-6 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
                                 Delete
                             </button>
-                            <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Close
-                            </button>
+                            <div className="flex space-x-3">
+                                <button onClick={handleGenerateRequest} className="px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm whitespace-nowrap">
+                                    Print Form
+                                </button>
+                                <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -8,9 +8,13 @@ export default function AdminRequestScreen() {
     const navigate = useNavigate();
 
     const [requests, setRequests] = useState([]);
+    const [adminName, setAdminName] = useState('Admin');
+    const [inventoryList, setInventoryList] = useState([]);
 
     useEffect(() => {
         fetchRequests();
+        fetchAdminDetails();
+        fetchInventory();
     }, []);
 
     const fetchRequests = async () => {
@@ -29,6 +33,29 @@ export default function AdminRequestScreen() {
         }
     };
 
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
+
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_procurement')
+                .select('item_id, quantity_available');
+            
+            if (error) throw error;
+            if (data) setInventoryList(data);
+        } catch (err) {
+            console.error("Error fetching inventory:", err);
+        }
+    };
+
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [remarks, setRemarks] = useState('');
@@ -36,8 +63,8 @@ export default function AdminRequestScreen() {
 
     const handleViewDetails = (request) => {
         setSelectedRequest(request);
-        setRemarks(request.remarks || '');
-        setAdminNote(request.admin_note || '');
+        setRemarks('');
+        setAdminNote('');
         setIsModalOpen(true);
     };
 
@@ -66,14 +93,103 @@ export default function AdminRequestScreen() {
         }
     };
 
-    const updateStatus = async (newStatus) => {
+    const buildUpdatedText = (existingText, newText) => {
+        if (!newText.trim()) return existingText || null;
+        const timestamp = new Date().toLocaleString();
+        const entry = `[${timestamp}] ${adminName}:\n${newText.trim()}`;
+        return existingText ? `${existingText}\n\n${entry}` : entry;
+    };
+
+    const getStock = (itemNumber) => {
+        if (!itemNumber) return 0;
+        const id = parseInt(itemNumber.replace('ITM-', ''), 10);
+        const invItem = inventoryList.find(i => i.item_id === id);
+        return invItem ? invItem.quantity_available : 0;
+    };
+
+    const handleItemQuantityChange = (index, value) => {
+        // Update the quantity directly in the selected request's item array
+        const newItems = [...selectedRequest.items];
+        newItems[index].quantity = value;
+        setSelectedRequest(prev => ({ ...prev, items: newItems }));
+    };
+
+    const handleSaveNotes = async () => {
+        const updatedRemarks = buildUpdatedText(selectedRequest.remarks, remarks);
+        const updatedAdminNote = buildUpdatedText(selectedRequest.admin_note, adminNote);
+
         try {
             const { error } = await supabase
                 .from('requisition_issuance')
-                    .update({ status: newStatus })
+                .update({ 
+                    remarks: updatedRemarks,
+                    admin_note: updatedAdminNote,
+                    items: selectedRequest.items
+                })
                 .eq('request_id', selectedRequest.request_id);
 
             if (error) throw error;
+
+            setRequests(prev => prev.map(req => 
+                req.request_id === selectedRequest.request_id ? { ...req, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
+            ));
+            
+            setSelectedRequest(prev => ({ ...prev, remarks: updatedRemarks, admin_note: updatedAdminNote }));
+            setRemarks('');
+            setAdminNote('');
+            alert('Notes saved successfully!');
+        } catch (error) {
+            console.error('Error saving notes:', error);
+            alert(`Failed to save notes: ${error.message}`);
+        }
+    };
+
+    const updateStatus = async (newStatus) => {
+        if (newStatus === 'Rejected' && !remarks.trim()) {
+            alert('Please provide Remarks / Action Reason before rejecting this request.');
+            return;
+        }
+
+        const updatedRemarks = buildUpdatedText(selectedRequest.remarks, remarks);
+        const updatedAdminNote = buildUpdatedText(selectedRequest.admin_note, adminNote);
+
+        try {
+            const { error } = await supabase
+                .from('requisition_issuance')
+                .update({ 
+                    status: newStatus,
+                    remarks: updatedRemarks,
+                    admin_note: updatedAdminNote,
+                    items: selectedRequest.items
+                })
+                .eq('request_id', selectedRequest.request_id);
+
+            if (error) throw error;
+
+            // Deduct stock if Approved
+            if (newStatus === 'Approved') {
+                for (const item of selectedRequest.items) {
+                    const id = parseInt(item.itemNumber.replace('ITM-', ''), 10);
+                    const approvedQty = parseInt(item.quantity || 0, 10);
+
+                    if (approvedQty > 0) {
+                        const { data: invData, error: invError } = await supabase
+                            .from('inventory_procurement')
+                            .select('quantity_available')
+                            .eq('item_id', id)
+                            .single();
+                        
+                        if (!invError && invData) {
+                            const newQuantity = Math.max(0, invData.quantity_available - approvedQty);
+                            await supabase
+                                .from('inventory_procurement')
+                                .update({ quantity_available: newQuantity })
+                                .eq('item_id', id);
+                        }
+                    }
+                }
+                fetchInventory(); // Refresh local stock so the UI stays up-to-date
+            }
 
             // Instantly send a notification to the specific staff member
             const { error: notifError } = await supabase.from('notifications').insert([{
@@ -83,7 +199,7 @@ export default function AdminRequestScreen() {
             if (notifError) console.error("Failed to send notification:", notifError);
 
             setRequests(prev => prev.map(req => 
-                req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks, admin_note: adminNote } : req
+                req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
             ));
             
             alert(`Request ${newStatus} successfully!`);
@@ -92,6 +208,66 @@ export default function AdminRequestScreen() {
             console.error('Error updating status:', error);
             alert(`Failed to update status: ${error.message}`);
         }
+    };
+
+    const handleGenerateRequest = () => {
+        if (!selectedRequest) return;
+
+        const printWindow = window.open('', '_blank');
+        
+        const html = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Requisition Issuance - ${selectedRequest.request_id}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        h1 { text-align: center; color: #111; margin-bottom: 5px; }
+                        h3 { text-align: center; color: #555; margin-top: 0; margin-bottom: 30px; font-weight: normal; }
+                        .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                        .info-grid div { margin-bottom: 10px; }
+                        .info-label { font-size: 0.85em; color: #777; text-transform: uppercase; margin-bottom: 3px; }
+                        .info-value { font-weight: bold; font-size: 1.1em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                        th { background-color: #f9fafb; color: #555; }
+                        .status-box { padding: 15px; background-color: #f9fafb; border: 1px solid #ddd; margin-top: 30px; }
+                        .footer { margin-top: 40px; text-align: right; font-size: 0.9em; color: #666; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Requisition Issuance Form</h1>
+                    <h3>${selectedRequest.request_id}</h3>
+                    
+                    <div class="info-grid">
+                        <div><div class="info-label">Requester Name</div><div class="info-value">${selectedRequest.name}</div></div>
+                        <div><div class="info-label">Designation</div><div class="info-value">${selectedRequest.designation}</div></div>
+                        <div><div class="info-label">Department</div><div class="info-value">${selectedRequest.dept}</div></div>
+                        <div><div class="info-label">Date of Request</div><div class="info-value">${selectedRequest.request_date}</div></div>
+                    </div>
+
+                    <table>
+                        <thead><tr><th style="width: 20%">Item Number</th><th style="width: 50%">Item Description</th><th style="width: 15%">Quantity</th><th style="width: 15%">Unit</th></tr></thead>
+                        <tbody>
+                            ${selectedRequest.items.length > 0 ? selectedRequest.items.map(item => `<tr><td>${item.itemNumber}</td><td>${item.itemDescription}</td><td>${item.quantity}</td><td>${item.unit}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align: center">No items found</td></tr>'}
+                        </tbody>
+                    </table>
+                    
+                    <div class="status-box">
+                        <strong>Status:</strong> ${selectedRequest.status}
+                        ${selectedRequest.remarks ? `<br><br><strong>Remarks:</strong><br><span style="white-space: pre-wrap; font-family: monospace;">${selectedRequest.remarks}</span>` : ''}
+                    </div>
+
+                    <div class="footer"><p>Generated on: ${new Date().toLocaleDateString()}</p></div>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => { printWindow.onafterprint = () => printWindow.close(); printWindow.print(); }, 250);
     };
 
     const getStatusStyle = (status) => {
@@ -118,6 +294,7 @@ export default function AdminRequestScreen() {
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
+                        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
                         {/* Requester Info Read-Only */}
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                             <div>
@@ -139,64 +316,106 @@ export default function AdminRequestScreen() {
                         </div>
 
                         {/* Remarks and Notes fields */}
-                        <div className="flex flex-col space-y-4 mb-6 shrink-0">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks / Action Reason</label>
-                                {selectedRequest.status === 'Pending' ? (
-                                    <textarea
-                                        value={remarks}
-                                        onChange={(e) => setRemarks(e.target.value)}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                        rows="2"
-                                        placeholder="Why is this being approved or rejected?"
-                                    />
+                        <div className="flex flex-col space-y-6 mb-6 shrink-0">
+                            {/* Remarks Section */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <h4 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">Remarks History</h4>
+                                {selectedRequest.remarks ? (
+                                    <div className="p-3 bg-gray-50 border border-gray-100 rounded-md text-sm text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto mb-3 font-mono">
+                                        {selectedRequest.remarks}
+                                    </div>
                                 ) : (
-                                    <p className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
-                                        {selectedRequest.remarks || 'No remarks provided.'}
-                                    </p>
+                                    <p className="text-sm text-gray-500 italic mb-3">No previous remarks.</p>
+                                )}
+
+                                {selectedRequest.status === 'Pending' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Add New Remark <span className="text-red-500 font-normal ml-1">(Required for Rejection)</span></label>
+                                        <textarea
+                                            value={remarks}
+                                            onChange={(e) => setRemarks(e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                            rows="2"
+                                            placeholder="Why is this being approved or rejected?"
+                                        />
+                                    </div>
                                 )}
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Notes (e.g. Incomplete items)</label>
-                                {selectedRequest.status === 'Pending' ? (
-                                    <textarea
-                                        value={adminNote}
-                                        onChange={(e) => setAdminNote(e.target.value)}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                        rows="2"
-                                        placeholder="Any additional notes?"
-                                    />
+
+                            {/* Admin Notes Section */}
+                            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                                <h4 className="text-sm font-bold text-gray-800 mb-2 uppercase tracking-wide">Admin Notes History</h4>
+                                {selectedRequest.admin_note ? (
+                                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-gray-800 whitespace-pre-wrap max-h-40 overflow-y-auto mb-3 font-mono">
+                                        {selectedRequest.admin_note}
+                                    </div>
                                 ) : (
-                                    <p className="p-3 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700">
-                                        {selectedRequest.admin_note || 'No notes provided.'}
-                                    </p>
+                                    <p className="text-sm text-gray-500 italic mb-3">No previous internal notes.</p>
+                                )}
+
+                                {selectedRequest.status === 'Pending' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Add New Admin Note</label>
+                                        <textarea
+                                            value={adminNote}
+                                            onChange={(e) => setAdminNote(e.target.value)}
+                                            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                            rows="2"
+                                            placeholder="Any additional internal notes?"
+                                        />
+                                    </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Items Table Read-Only */}
                         <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
-                        <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
                             <table className="min-w-full divide-y divide-gray-200 relative">
                                 <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
+                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Item Number</th>
+                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Item Description</th>
+                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">In Stock</th>
+                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Approved Qty</th>
                                         <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {selectedRequest.items.map((item, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
-                                        </tr>
-                                    ))}
+                                    {selectedRequest.items.map((item, index) => {
+                                        const inStock = getStock(item.itemNumber);
+                                        const requestedQty = parseInt(item.quantity || 0, 10);
+                                        const isLowStock = requestedQty > inStock;
+                                        
+                                        return (
+                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
+                                                <td className={`px-4 py-3 text-sm font-bold ${inStock === 0 ? 'text-red-600' : isLowStock ? 'text-yellow-600' : 'text-green-600'}`}>
+                                                    {inStock}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                                                    {selectedRequest.status === 'Pending' ? (
+                                                        <div className="flex flex-col">
+                                                            <input type="number" min="0" max={inStock} value={item.quantity} onChange={(e) => handleItemQuantityChange(index, e.target.value)} className={`w-20 p-1 border rounded-md text-sm shadow-sm ${isLowStock ? 'border-yellow-400 focus:ring-yellow-500 focus:border-yellow-500 bg-yellow-50' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500'}`} />
+                                                            {isLowStock && (
+                                                                <div className="mt-1 flex flex-col items-start gap-1">
+                                                                    <span className="text-xs text-yellow-600 leading-tight">Exceeds stock</span>
+                                                                    <button type="button" onClick={() => handleItemQuantityChange(index, inStock)} className="text-[10px] px-1.5 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded shadow-sm hover:bg-yellow-200 transition-colors">Set to Max</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        item.quantity
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
+                        </div>
                         </div>
 
                         <div className="flex justify-between shrink-0 pt-4 border-t border-gray-200 mt-auto">
@@ -209,15 +428,23 @@ export default function AdminRequestScreen() {
                                         <button onClick={() => updateStatus('Rejected')} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium shadow-sm">
                                             Reject
                                         </button>
+                                        <button onClick={handleSaveNotes} className="px-4 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                            Save Notes
+                                        </button>
                                     </>
                                 )}
                                 <button onClick={() => handleDeleteRequest(selectedRequest.request_id)} className="px-4 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
                                     Delete
                                 </button>
                             </div>
-                            <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Close
-                            </button>
+                            <div className="flex space-x-3">
+                                <button onClick={handleGenerateRequest} className="px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm whitespace-nowrap">
+                                    Print Form
+                                </button>
+                                <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

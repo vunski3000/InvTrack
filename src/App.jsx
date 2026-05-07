@@ -19,6 +19,7 @@ import StaffInventoryScreen from './screen/staff/StaffInventoryScreen.jsx'
 import StaffPPMPScreen from './screen/staff/StaffPPMPScreen.jsx'
 import StaffMyRequestsScreen from './screen/staff/StaffMyRequestsScreen.jsx'
 import StaffSignupScreen from './screen/staff/StaffSignupScreen.jsx'
+import AuditScreen from './screen/admin/AuditScreen.jsx'
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/admin-requests" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><AdminRequestScreen /></ProtectedRoute>} />
           <Route path="/ppmp" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><PPMPScreen /></ProtectedRoute>} />
           <Route path="/personnel" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><PersonnelScreen /></ProtectedRoute>} />
+          <Route path="/audit-logs" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><AuditScreen /></ProtectedRoute>} />
 
           {/* Staff Protected Routes */}
           <Route path="/staff-dashboard" element={<ProtectedRoute allowedRoles={['staff']} redirectTo="/staff-login"><StaffDashboardScreen /></ProtectedRoute>} />
