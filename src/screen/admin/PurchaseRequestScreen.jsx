@@ -147,7 +147,84 @@ export default function PurchaseRequestScreen() {
     };
 
     const handleGeneratePR = () => {
-        alert(`Generating Purchase Request document for: ${selectedRequest.pr_id}`);
+        if (!selectedRequest) return;
+
+        const printWindow = window.open('', '_blank');
+        
+        const html = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Purchase Request - ${selectedRequest.pr_id}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        h1 { text-align: center; color: #111; margin-bottom: 5px; }
+                        h3 { text-align: center; color: #555; margin-top: 0; margin-bottom: 30px; font-weight: normal; }
+                        .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; }
+                        .info-grid div { margin-bottom: 10px; }
+                        .info-label { font-size: 0.85em; color: #777; text-transform: uppercase; margin-bottom: 3px; }
+                        .info-value { font-weight: bold; font-size: 1.1em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                        th { background-color: #f9fafb; color: #555; }
+                        .footer { margin-top: 40px; text-align: right; font-size: 0.9em; color: #666; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Purchase Request</h1>
+                    <h3>${selectedRequest.pr_id}</h3>
+                    
+                    <div class="info-grid">
+                        <div>
+                            <div class="info-label">Requester Name</div>
+                            <div class="info-value">${selectedRequest.requesterName}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Department</div>
+                            <div class="info-value">${selectedRequest.department}</div>
+                        </div>
+                        <div>
+                            <div class="info-label">Date of Request</div>
+                            <div class="info-value">${selectedRequest.requestDate}</div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 20%">Item Number</th>
+                                <th style="width: 50%">Item Description</th>
+                                <th style="width: 15%">Quantity</th>
+                                <th style="width: 15%">Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${selectedRequest.items.length > 0 ? selectedRequest.items.map(item => `
+                                <tr>
+                                    <td>${item.itemNumber}</td>
+                                    <td>${item.itemDescription}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${item.unit}</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="4" style="text-align: center">No items found</td></tr>'}
+                        </tbody>
+                    </table>
+                    <div class="footer">
+                        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.onafterprint = () => printWindow.close();
+            printWindow.print();
+        }, 250);
     };
 
     const getStatusStyle = (status) => {

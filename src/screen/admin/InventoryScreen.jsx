@@ -68,6 +68,11 @@ export default function InventoryScreen() {
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: new Date().getFullYear().toString() });
     const [isSubmittingPPMP, setIsSubmittingPPMP] = useState(false);
 
+    // Stock Card Creation State
+    const [isCreatingStockCard, setIsCreatingStockCard] = useState(false);
+    const [selectedForStockCard, setSelectedForStockCard] = useState(null);
+    const [isStockCardModalOpen, setIsStockCardModalOpen] = useState(false);
+
     const handleOpenEditModal = (item) => {
         setEditingItem({ ...item });
         setIsEditModalOpen(true);
@@ -301,6 +306,55 @@ export default function InventoryScreen() {
         } finally {
             setIsSubmittingPPMP(false);
         }
+    };
+
+    const handleGenerateStockCard = () => {
+        if (!selectedForStockCard) return;
+
+        const printWindow = window.open('', '_blank');
+        
+        const html = `
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Stock Card - ITM-${String(selectedForStockCard.item_id).padStart(4, '0')}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+                        h1 { text-align: center; color: #111; margin-bottom: 30px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                        th { background-color: #f9fafb; width: 30%; color: #555; }
+                        .footer { margin-top: 40px; text-align: right; font-size: 0.9em; color: #666; }
+                        @media print { body { padding: 0; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>Stock Card</h1>
+                    <table>
+                        <tr><th>Item ID</th><td>ITM-${String(selectedForStockCard.item_id).padStart(4, '0')}</td></tr>
+                        <tr><th>Item Name</th><td>${selectedForStockCard.item}</td></tr>
+                        <tr><th>Description</th><td>${selectedForStockCard.description || '-'}</td></tr>
+                        <tr><th>Category</th><td>${selectedForStockCard.category_name || selectedForStockCard.category || '-'}</td></tr>
+                        <tr><th>In Store Quantity</th><td>${selectedForStockCard.quantity_available} ${selectedForStockCard.unit_name || selectedForStockCard.unit || ''}</td></tr>
+                    </table>
+                    <div class="footer">
+                        <p>Generated on: ${new Date().toLocaleDateString()}</p>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.onafterprint = () => printWindow.close();
+            printWindow.print();
+            setIsStockCardModalOpen(false);
+            setIsCreatingStockCard(false);
+            setSelectedForStockCard(null);
+        }, 250);
     };
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -562,6 +616,46 @@ export default function InventoryScreen() {
                 </div>
             )}
 
+            {/* Create Stock Card Modal */}
+            {isStockCardModalOpen && selectedForStockCard && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-bold text-gray-800">Stock Card</h3>
+                            <button onClick={() => setIsStockCardModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                        </div>
+                        <div className="space-y-4 mb-6">
+                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Item ID</p>
+                                        <p className="font-semibold text-gray-900 font-mono">ITM-{String(selectedForStockCard.item_id).padStart(4, '0')}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">In Store Quantity</p>
+                                        <p className="font-semibold text-gray-900">{selectedForStockCard.quantity_available} {selectedForStockCard.unit_name || selectedForStockCard.unit || ''}</p>
+                                    </div>
+                                    <div className="sm:col-span-2">
+                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Item Name</p>
+                                        <p className="font-semibold text-gray-900">{selectedForStockCard.item}</p>
+                                    </div>
+                                    {selectedForStockCard.description && (
+                                        <div className="sm:col-span-2">
+                                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Description</p>
+                                            <p className="text-gray-700">{selectedForStockCard.description}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100">
+                            <button type="button" onClick={() => setIsStockCardModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Back</button>
+                            <button type="button" onClick={handleGenerateStockCard} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">Generate Stock Card</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navigation */}
             <Navigation />
 
@@ -580,8 +674,19 @@ export default function InventoryScreen() {
                                     Next: Set Details
                                 </button>
                             </>
+                        ) : isCreatingStockCard ? (
+                            <>
+                                <span className="text-sm font-medium text-gray-600 hidden sm:inline">{selectedForStockCard ? '1 selected' : 'Select an item'}</span>
+                                <button onClick={() => { setIsCreatingStockCard(false); setSelectedForStockCard(null); }} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors shadow-sm">
+                                    Cancel
+                                </button>
+                                <button onClick={() => setIsStockCardModalOpen(true)} disabled={!selectedForStockCard} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
+                                    Next: View Details
+                                </button>
+                            </>
                         ) : (
                             <>
+                                <button onClick={() => setIsCreatingStockCard(true)} className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap">Create Stock Card</button>
                                 <button onClick={() => setIsCreatingPPMP(true)} className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 transition-colors shadow-sm">Create PPMP</button>
                                 <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">+ Add New Item</button>
                             </>
@@ -643,6 +748,11 @@ export default function InventoryScreen() {
                                                 />
                                             </th>
                                         )}
+                                        {isCreatingStockCard && (
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 w-10">
+                                                Select
+                                            </th>
+                                        )}
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -655,13 +765,13 @@ export default function InventoryScreen() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
                                                 Loading inventory...
                                             </td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-red-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-red-500">
                                                 Error loading inventory: {error}
                                             </td>
                                         </tr>
@@ -681,6 +791,17 @@ export default function InventoryScreen() {
                                                         disabled={item.quantity_available <= 0}
                                                         title={item.quantity_available <= 0 ? "Out of stock" : ""}
                                                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    />
+                                                </td>
+                                            )}
+                                            {isCreatingStockCard && (
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <input
+                                                        type="radio"
+                                                        name="stockCardSelection"
+                                                        checked={selectedForStockCard?.item_id === item.item_id}
+                                                        onChange={() => setSelectedForStockCard(item)}
+                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer"
                                                     />
                                                 </td>
                                             )}
@@ -708,7 +829,7 @@ export default function InventoryScreen() {
                                         </tr>
                                     )}) : (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
                                                 No items found matching your filters.
                                             </td>
                                         </tr>
