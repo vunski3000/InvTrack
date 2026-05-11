@@ -76,12 +76,21 @@ export default function AdminRequestScreen() {
     const handleDeleteRequest = async (requestId) => {
         if (window.confirm("Are you sure you want to delete this request?")) {
             try {
+                const requestToDelete = requests.find(r => r.request_id === requestId);
+
                 const { error } = await supabase
                     .from('requisition_issuance')
                     .delete()
                     .eq('request_id', requestId);
 
                 if (error) throw error;
+
+                if (requestToDelete) {
+                    await supabase.from('notifications').insert([{
+                        target_user: requestToDelete.name,
+                        message: `Your requisition request (${requestId}) has been deleted by an Admin.`
+                    }]);
+                }
 
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();

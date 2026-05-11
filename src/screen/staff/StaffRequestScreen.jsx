@@ -212,7 +212,8 @@ export default function StaffRequestScreen() {
                                     value={department}
                                     onChange={(e) => setDepartment(e.target.value)}
                                     required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    disabled
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 text-gray-500 cursor-not-allowed"
                                 >
                                     <option value="" disabled>Select a department</option>
                                     {departmentsList.map((dept, index) => (
@@ -228,7 +229,8 @@ export default function StaffRequestScreen() {
                                     value={designation}
                                     onChange={(e) => setDesignation(e.target.value)}
                                     required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    readOnly
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 cursor-not-allowed text-gray-500"
                                     placeholder="e.g., Manager, Staff"
                                 />
                             </div>
@@ -242,7 +244,8 @@ export default function StaffRequestScreen() {
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    readOnly
+                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 cursor-not-allowed text-gray-500"
                                     placeholder="Enter your full name"
                                 />
                             </div>
