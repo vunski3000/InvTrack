@@ -5,9 +5,12 @@ import { supabase } from '../../supabaseClient';
 export default function StaffDashboardScreen() {
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [recentAudits, setRecentAudits] = useState([]);
+    const [totalClaimedQuantity, setTotalClaimedQuantity] = useState(0);
 
     useEffect(() => {
         fetchInventory();
+        fetchUserDataAndClaims();
     }, []);
 
     const fetchInventory = async () => {
@@ -23,7 +26,71 @@ export default function StaffDashboardScreen() {
         }
     };
 
-    const recentAudits = []; // Intentionally left empty for now
+    const fetchUserDataAndClaims = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                const staffIdString = user.email.split('@')[0];
+                const staffIdNum = parseInt(staffIdString.replace('-', ''), 10);
+                let currentStaffName = staffIdString; // Fallback to ID
+
+                const { data: personnelData } = await supabase
+                    .from('personnel')
+                    .select('name')
+                    .eq('personnel_id', staffIdNum)
+                    .single();
+                    
+                if (personnelData && personnelData.name) {
+                    currentStaffName = personnelData.name;
+                }
+                
+                await fetchClaimedItems(currentStaffName);
+            }
+        } catch (err) {
+            console.error("Error fetching user data:", err);
+        }
+    };
+
+    const fetchClaimedItems = async (staffName) => {
+        try {
+            const { data, error } = await supabase
+                .from('requisition_issuance')
+                .select('request_id, request_date, items')
+                .eq('status', 'Claimed')
+                .eq('name', staffName)
+                .order('request_date', { ascending: false });
+
+            if (error) throw error;
+
+            let totalQty = 0;
+            let auditsList = [];
+
+            if (data) {
+                data.forEach((request) => {
+                    if (request.items && Array.isArray(request.items)) {
+                        request.items.forEach((item, index) => {
+                            const qty = parseInt(item.quantity || 0, 10);
+                            if (!isNaN(qty)) {
+                                totalQty += qty;
+                            }
+                            auditsList.push({
+                                id: `${request.request_id}-${item.itemNumber}-${index}`,
+                                item: item.itemDescription || item.itemNumber,
+                                quantity: item.quantity,
+                                date: request.request_date,
+                                status: 'Claimed'
+                            });
+                        });
+                    }
+                });
+            }
+
+            setTotalClaimedQuantity(totalQty);
+            setRecentAudits(auditsList);
+        } catch (err) {
+            console.error("Error fetching claimed items:", err.message);
+        }
+    };
 
     const lowStockItems = inventory.filter(item => {
         const qty = parseInt(item.quantity_available, 10) || 0;
@@ -59,7 +126,7 @@ export default function StaffDashboardScreen() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-gray-500">Items Acquired Audit</p>
-                                <p className="text-2xl font-bold text-gray-900">{recentAudits.length} Recent</p>
+                                <p className="text-2xl font-bold text-gray-900">{totalClaimedQuantity} Items</p>
                             </div>
                         </div>
                     </div>
@@ -126,7 +193,7 @@ export default function StaffDashboardScreen() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.quantity}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.date}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'Received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'Claimed' ? 'bg-blue-100 text-blue-800' : audit.status === 'Received' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                                         {audit.status}
                                                     </span>
                                                 </td>

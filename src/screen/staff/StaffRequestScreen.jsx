@@ -180,6 +180,13 @@ export default function StaffRequestScreen() {
             }]);
             if (notifError) console.error("Failed to send notification:", notifError);
 
+            // Audit Log
+            await supabase.from('audit_logs').insert([{
+                user_name: name,
+                action: 'Submit Request',
+                details: `Submitted new requisition request ${newId}`
+            }]);
+
             alert('Item requested successfully!');
             setDepartment('');
             setName('');

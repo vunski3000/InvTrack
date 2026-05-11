@@ -92,6 +92,13 @@ export default function AdminRequestScreen() {
                     }]);
                 }
 
+                // Audit Log
+                await supabase.from('audit_logs').insert([{
+                    user_name: adminName,
+                    action: 'Delete Request',
+                    details: `Deleted request ${requestId} requested by ${requestToDelete ? requestToDelete.name : 'Unknown'}`
+                }]);
+
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();
                 alert("Request deleted successfully!");
@@ -143,6 +150,13 @@ export default function AdminRequestScreen() {
                 req.request_id === selectedRequest.request_id ? { ...req, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
             ));
             
+            // Audit Log
+            await supabase.from('audit_logs').insert([{
+                user_name: adminName,
+                action: 'Update Notes',
+                details: `Updated notes for request ${selectedRequest.request_id}`
+            }]);
+
             setSelectedRequest(prev => ({ ...prev, remarks: updatedRemarks, admin_note: updatedAdminNote }));
             setRemarks('');
             setAdminNote('');
@@ -206,6 +220,13 @@ export default function AdminRequestScreen() {
                 message: `Your requisition request (${selectedRequest.request_id}) has been ${newStatus}.`
             }]);
             if (notifError) console.error("Failed to send notification:", notifError);
+
+            // Audit Log
+            await supabase.from('audit_logs').insert([{
+                user_name: adminName,
+                action: `Update Status: ${newStatus}`,
+                details: `Updated request ${selectedRequest.request_id} to ${newStatus}`
+            }]);
 
             setRequests(prev => prev.map(req => 
                 req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
@@ -287,6 +308,8 @@ export default function AdminRequestScreen() {
                 return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'Rejected':
                 return 'bg-red-100 text-red-800 border-red-200';
+            case 'Claimed':
+                return 'bg-blue-100 text-blue-800 border-blue-200';
             default:
                 return 'bg-gray-100 text-gray-800 border-gray-200';
         }
@@ -337,7 +360,7 @@ export default function AdminRequestScreen() {
                                     <p className="text-sm text-gray-500 italic mb-3">No previous remarks.</p>
                                 )}
 
-                                {selectedRequest.status === 'Pending' && (
+                                {(selectedRequest.status === 'Pending' || selectedRequest.status === 'Approved') && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Add New Remark <span className="text-red-500 font-normal ml-1">(Required for Rejection)</span></label>
                                         <textarea
@@ -362,7 +385,7 @@ export default function AdminRequestScreen() {
                                     <p className="text-sm text-gray-500 italic mb-3">No previous internal notes.</p>
                                 )}
 
-                                {selectedRequest.status === 'Pending' && (
+                                {(selectedRequest.status === 'Pending' || selectedRequest.status === 'Approved') && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Add New Admin Note</label>
                                         <textarea
@@ -436,6 +459,16 @@ export default function AdminRequestScreen() {
                                         </button>
                                         <button onClick={() => updateStatus('Rejected')} className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium shadow-sm">
                                             Reject
+                                        </button>
+                                        <button onClick={handleSaveNotes} className="px-4 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                            Save Notes
+                                        </button>
+                                    </>
+                                )}
+                                {selectedRequest.status === 'Approved' && (
+                                    <>
+                                        <button onClick={() => updateStatus('Claimed')} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium shadow-sm">
+                                            Item Claimed
                                         </button>
                                         <button onClick={handleSaveNotes} className="px-4 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
                                             Save Notes
