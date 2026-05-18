@@ -35,7 +35,7 @@ export default function SysadminDashboardScreen() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold text-gray-800">User Management</h3>
                         <p className="text-sm text-gray-500 mt-2 mb-4">Manage staff and admin accounts, reset passwords, and assign roles.</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/sysadmin-user-management')}
                             className="w-full py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 font-medium text-sm transition"
                         >
@@ -46,7 +46,7 @@ export default function SysadminDashboardScreen() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold text-gray-800">System Backups</h3>
                         <p className="text-sm text-gray-500 mt-2 mb-4">Export full database records, tables, and system configurations.</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/sysadmin-backups')}
                             className="w-full py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 font-medium text-sm transition"
                         >
@@ -57,7 +57,7 @@ export default function SysadminDashboardScreen() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h3 className="text-lg font-semibold text-gray-800">Audit & Logs</h3>
                         <p className="text-sm text-gray-500 mt-2 mb-4">View global system activities, security events, and error logs.</p>
-                        <button 
+                        <button
                             onClick={() => navigate('/sysadmin-audit-logs')}
                             className="w-full py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 font-medium text-sm transition"
                         >
