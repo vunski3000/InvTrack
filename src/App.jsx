@@ -20,6 +20,9 @@ import StaffPPMPScreen from './screen/staff/StaffPPMPScreen.jsx'
 import StaffMyRequestsScreen from './screen/staff/StaffMyRequestsScreen.jsx'
 import StaffSignupScreen from './screen/staff/StaffSignupScreen.jsx'
 import AuditScreen from './screen/admin/AuditScreen.jsx'
+import SysAdminLoginScreen from './screen/sysadmin/SysAdminLoginScreen.jsx'
+import SysadminDashboardScreen from './screen/sysadmin/SysadminDashboardScreen.jsx'
+import SysadminUserManagementScreen from './screen/sysadmin/SysadminUserManagementScreen.jsx'
 
 function App() {
   return (
@@ -32,6 +35,7 @@ function App() {
           <Route path="/signup" element={<SignupScreen />} />
           <Route path="/staff-signup" element={<StaffSignupScreen />} />
           <Route path="/home" element={<HomeScreen />} />
+          <Route path="/sysadmin-login" element={<SysAdminLoginScreen />} />
           {/* Admin Protected Routes */}
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><DashboardScreen /></ProtectedRoute>} />
           <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/login"><InventoryScreen /></ProtectedRoute>} />
@@ -48,6 +52,10 @@ function App() {
           <Route path="/staff-inventory" element={<ProtectedRoute allowedRoles={['staff']} redirectTo="/staff-login"><StaffInventoryScreen /></ProtectedRoute>} />
           <Route path="/staff-ppmp" element={<ProtectedRoute allowedRoles={['staff']} redirectTo="/staff-login"><StaffPPMPScreen /></ProtectedRoute>} />
           <Route path="/my-requests" element={<ProtectedRoute allowedRoles={['staff']} redirectTo="/staff-login"><StaffMyRequestsScreen /></ProtectedRoute>} />
+
+          {/* System Admin Protected Routes */}
+          <Route path="/sysadmin-dashboard" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminDashboardScreen /></ProtectedRoute>} />
+          <Route path="/sysadmin-user-management" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminUserManagementScreen /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
