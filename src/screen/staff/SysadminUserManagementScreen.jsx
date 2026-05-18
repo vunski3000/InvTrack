@@ -14,24 +14,20 @@ export default function SysadminUserManagementScreen() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // NOTE: Normal frontend clients cannot list all users from auth.users.
-            // You must use a Supabase Edge Function to fetch this securely using the SERVICE_ROLE key.
-            // Example:
-            // const { data, error } = await supabase.functions.invoke('manage-users', { body: { action: 'list' } });
-            // if (error) throw error;
-            // setUsers(data.users);
-
-            // --- Mock Data for UI Demonstration ---
-            setTimeout(() => {
-                setUsers([
-                    { id: '1', email: 'tesdatalisay@invtrack.local', role: 'sysadmin', created_at: new Date().toISOString() },
-                    { id: '2', email: 'admin1@invtrack.local', role: 'admin', created_at: new Date(Date.now() - 86400000).toISOString() },
-                    { id: '3', email: '2026-0501@invtrack.local', role: 'staff', created_at: new Date(Date.now() - 172800000).toISOString() },
-                ]);
-                setLoading(false);
-            }, 800);
+            // Call the Supabase Edge Function to fetch users securely
+            const { data, error } = await supabase.functions.invoke('manage-users', { body: { action: 'list' } });
+            if (error) throw error;
+            
+            const mappedUsers = (data?.users || []).map(u => ({
+                id: u.id,
+                email: u.email,
+                role: u.user_metadata?.role || 'staff',
+                created_at: u.created_at
+            }));
+            setUsers(mappedUsers);
         } catch (error) {
             console.error("Error fetching users:", error);
+        } finally {
             setLoading(false);
         }
     };
@@ -40,21 +36,20 @@ export default function SysadminUserManagementScreen() {
         if (!window.confirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`)) return;
         
         // Optimistic UI Update
+        const previousUsers = [...users];
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
 
         try {
-            // NOTE: Updating another user's metadata requires an Edge Function.
-            // Example:
-            // const { error } = await supabase.functions.invoke('manage-users', {
-            //     body: { action: 'update_role', userId, newRole }
-            // });
-            // if (error) throw error;
+            const { error } = await supabase.functions.invoke('manage-users', {
+                body: { action: 'update_role', userId, newRole }
+            });
+            if (error) throw error;
             
             console.log(`Role for user ${userId} updated to ${newRole}`);
         } catch (error) {
             console.error("Error updating role:", error);
             alert("Failed to update role. See console for details.");
-            fetchUsers(); // Revert changes on failure
+            setUsers(previousUsers); // Revert changes on failure
         }
     };
 

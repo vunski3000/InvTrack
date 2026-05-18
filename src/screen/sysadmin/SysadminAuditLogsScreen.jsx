@@ -167,7 +167,12 @@ export default function SysadminAuditLogsScreen() {
                                 value={endDate}
                                 onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
                             />
-                            <button onClick={handleClearFilters} className="text-sm text-indigo-600 hover:underline p-2">Clear</button>
+                            <button 
+                                onClick={handleClearFilters} 
+                                className="px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition font-medium text-sm shadow-sm whitespace-nowrap ml-2"
+                            >
+                                Clear Filters
+                            </button>
                         </div>
                     </div>
                     <div className="shrink-0">
