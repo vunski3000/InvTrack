@@ -58,6 +58,40 @@ export default function SysadminUserManagementScreen() {
         }
     };
 
+    const handleResetPassword = async (user) => {
+        const newPassword = window.prompt(`Enter new password for ${user.email}:`);
+        if (!newPassword) return;
+        
+        try {
+            const { error } = await supabase.functions.invoke('manage-users', {
+                body: { action: 'update_password', userId: user.id, newPassword }
+            });
+            if (error) throw error;
+            
+            alert(`Password for ${user.email} updated successfully.`);
+        } catch (error) {
+            console.error("Error resetting password:", error);
+            alert("Failed to reset password. See console for details.");
+        }
+    };
+
+    const handleDeleteUser = async (user) => {
+        if (!window.confirm(`Are you sure you want to permanently delete user ${user.email}?`)) return;
+        
+        try {
+            const { error } = await supabase.functions.invoke('manage-users', {
+                body: { action: 'delete_user', userId: user.id }
+            });
+            if (error) throw error;
+            
+            setUsers(users.filter(u => u.id !== user.id));
+            alert(`User ${user.email} deleted successfully.`);
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            alert("Failed to delete user. See console for details.");
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen bg-gray-50 font-sans">
             {/* Top Navigation */}
@@ -79,11 +113,12 @@ export default function SysadminUserManagementScreen() {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID / Email</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Joined</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System Role</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {loading ? (
-                                    <tr><td colSpan="3" className="px-6 py-10 text-center text-gray-500">Loading system users...</td></tr>
+                                    <tr><td colSpan="4" className="px-6 py-10 text-center text-gray-500">Loading system users...</td></tr>
                                 ) : users.map((user) => (
                                     <tr key={user.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -103,6 +138,10 @@ export default function SysadminUserManagementScreen() {
                                                 <option value="admin">Admin</option>
                                                 <option value="sysadmin">System Admin</option>
                                             </select>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button onClick={() => handleResetPassword(user)} className="text-indigo-600 hover:text-indigo-900 mr-4">Reset Password</button>
+                                            <button onClick={() => handleDeleteUser(user)} className="text-red-600 hover:text-red-900">Delete</button>
                                         </td>
                                     </tr>
                                 ))}

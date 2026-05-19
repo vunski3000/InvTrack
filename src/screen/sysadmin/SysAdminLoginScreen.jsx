@@ -32,12 +32,21 @@ export default function SysadminLoginScreen() {
 
             const userRole = data.user?.user_metadata?.role;
 
-            if (userRole !== 'sysadmin') {
-                await supabase.auth.signOut(); // Immediately sign them out
-                throw new Error('Access denied. System Administrator privileges required.');
+            // Smart routing: Send user to their appropriate dashboard regardless of which login screen they used
+            switch (userRole) {
+                case 'sysadmin':
+                    navigate('/sysadmin-dashboard', { replace: true });
+                    break;
+                case 'admin':
+                    navigate('/dashboard', { replace: true });
+                    break;
+                case 'staff':
+                    navigate('/staff-dashboard', { replace: true });
+                    break;
+                default:
+                    await supabase.auth.signOut();
+                    throw new Error('Access denied. Unknown role.');
             }
-
-            navigate('/sysadmin-dashboard');
         } catch (err) {
             setError(err.message || 'Failed to sign in');
         } finally {

@@ -19,7 +19,8 @@ export default function SysadminBackupScreen() {
         'purchase_orders',
         'purchase_requests',
         'ppmps',
-        'notifications'
+        'notifications',
+        'system_configuration' // Add your actual table name here if it's different
     ];
 
     const handleFullBackup = async () => {
