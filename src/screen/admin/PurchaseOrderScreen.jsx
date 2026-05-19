@@ -16,11 +16,23 @@ export default function PurchaseOrderScreen() {
 
     const [purchaseOrders, setPurchaseOrders] = useState([]);
     const [inventoryList, setInventoryList] = useState([]);
+    const [adminName, setAdminName] = useState('Admin');
 
     useEffect(() => {
         fetchInventory();
         fetchPurchaseOrders();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchPurchaseOrders = async () => {
         try {
@@ -92,7 +104,7 @@ export default function PurchaseOrderScreen() {
         const newId = `PO-${new Date().getFullYear()}-${randomNum}`;
         
         const newOrder = {
-            po_id: newId,
+            purchase_order_id: newId,
             requesterName,
             department,
             requestDate,
@@ -139,16 +151,16 @@ export default function PurchaseOrderScreen() {
     };
 
     const handleDeleteOrder = async () => {
-        if (window.confirm(`Are you sure you want to delete purchase order ${selectedOrder.id}?`)) {
+        if (window.confirm(`Are you sure you want to delete purchase order ${selectedOrder.purchase_order_id}?`)) {
             try {
                 const { error } = await supabase
                     .from('purchase_orders')
                     .delete()
-                    .eq('po_id', selectedOrder.po_id);
+                    .eq('purchase_order_id', selectedOrder.purchase_order_id);
 
                 if (error) throw error;
 
-                setPurchaseOrders(prev => prev.filter(p => p.po_id !== selectedOrder.po_id));
+                setPurchaseOrders(prev => prev.filter(p => p.purchase_order_id !== selectedOrder.purchase_order_id));
                 closeModal();
                 alert('Purchase order deleted successfully.');
             } catch (error) {
@@ -169,18 +181,60 @@ export default function PurchaseOrderScreen() {
                     requestDate: editForm.requestDate,
                     items: editForm.items
                 })
-                .eq('po_id', editForm.po_id)
+                .eq('purchase_order_id', editForm.purchase_order_id)
                 .select();
 
             if (error) throw error;
 
-            setPurchaseOrders(prev => prev.map(p => p.po_id === editForm.po_id ? data[0] : p));
+            setPurchaseOrders(prev => prev.map(p => p.purchase_order_id === editForm.purchase_order_id ? data[0] : p));
             setSelectedOrder(data[0]);
             setIsEditingOrder(false);
             alert('Purchase order updated successfully!');
         } catch (error) {
             console.error('Error updating order:', error);
             alert('Failed to update order.');
+        }
+    };
+
+    const handleOrderAction = async (orderId, action) => {
+        if (!window.confirm(`Are you sure you want to mark this order as ${action}?`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('purchase_orders')
+                .update({ 
+                    status: action,
+                    approved_by: adminName 
+                })
+                .eq('purchase_order_id', orderId);
+
+            if (error) throw error;
+            
+            setPurchaseOrders(prevOrders => 
+                prevOrders.map(order => 
+                    order.purchase_order_id === orderId 
+                        ? { ...order, status: action, approved_by: adminName } 
+                        : order
+                )
+            );
+            
+            if (selectedOrder && selectedOrder.purchase_order_id === orderId) {
+                setSelectedOrder({ ...selectedOrder, status: action, approved_by: adminName });
+            }
+            
+            // Generate an automated Audit Log entry
+            await supabase.from('audit_logs').insert([{
+                user_name: adminName,
+                action: `Purchase Order ${action}`,
+                details: `Marked purchase order ${orderId} as ${action}`
+            }]);
+            
+            alert(`Order successfully ${action.toLowerCase()} by ${adminName}.`);
+        } catch (err) {
+            console.error(`Error updating order to ${action}:`, err.message);
+            alert(`Failed to update the purchase order: ${err.message}`);
         }
     };
 
@@ -223,7 +277,7 @@ export default function PurchaseOrderScreen() {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Purchase Order - ${selectedOrder.po_id}</title>
+                    <title>Purchase Order - ${selectedOrder.purchase_order_id}</title>
                     <style>
                         body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
                         h1 { text-align: center; color: #111; margin-bottom: 5px; }
@@ -241,7 +295,7 @@ export default function PurchaseOrderScreen() {
                 </head>
                 <body>
                     <h1>Purchase Order</h1>
-                    <h3>${selectedOrder.po_id}</h3>
+                    <h3>${selectedOrder.purchase_order_id}</h3>
                     
                     <div class="info-grid">
                         <div>
@@ -278,6 +332,16 @@ export default function PurchaseOrderScreen() {
                             `).join('') : '<tr><td colspan="4" style="text-align: center">No items found</td></tr>'}
                         </tbody>
                     </table>
+                    
+                    ${selectedOrder.approved_by ? `
+                    <div style="margin-top: 40px; text-align: right;">
+                        <p style="color: #555; font-size: 0.85em; margin-bottom: 5px; text-transform: uppercase;">${selectedOrder.status === 'Rejected' ? 'Rejected By:' : 'Approved By:'}</p>
+                        <div style="display: inline-block; min-width: 200px; border-bottom: 1px solid #000; padding-bottom: 5px; font-weight: bold; text-transform: uppercase;">
+                            ${selectedOrder.approved_by}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="footer">
                         <p>Generated on: ${new Date().toLocaleDateString()}</p>
                     </div>
@@ -403,27 +467,37 @@ export default function PurchaseOrderScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">{isEditingOrder ? `Edit Purchase Order: ${selectedOrder.po_id}` : <>Purchase Order Details: <span className="text-indigo-600">{selectedOrder.po_id}</span></>}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingOrder ? `Edit Purchase Order: ${selectedOrder.purchase_order_id}` : <>Purchase Order Details: <span className="text-indigo-600">{selectedOrder.purchase_order_id}</span></>}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
                         {isEditingOrder && editForm ? renderEditForm() : (
                             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                        {/* Requester Info Read-Only */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
-                                <p className="font-semibold text-gray-900">{selectedOrder.requesterName}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
-                                <p className="font-semibold text-gray-900">{selectedOrder.department}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Date of Request</p>
-                                <p className="font-semibold text-gray-900">{selectedOrder.requestDate}</p>
-                            </div>
-                        </div>
+                                {/* Requester Info Read-Only */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
+                                        <p className="font-semibold text-gray-900">{selectedOrder.requesterName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
+                                        <p className="font-semibold text-gray-900">{selectedOrder.department}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Date of Request</p>
+                                        <p className="font-semibold text-gray-900">{selectedOrder.requestDate}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Status</p>
+                                        <p className="font-semibold text-gray-900"><span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(selectedOrder.status)}`}>{selectedOrder.status}</span></p>
+                                    </div>
+                                    {selectedOrder.approved_by && (
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-500 mb-1">Action By</p>
+                                            <p className="font-semibold text-gray-900">{selectedOrder.approved_by}</p>
+                                        </div>
+                                    )}
+                                </div>
 
                         {/* Items Table Read-Only */}
                         <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
@@ -452,6 +526,16 @@ export default function PurchaseOrderScreen() {
 
                                 <div className="flex justify-between items-center shrink-0 pt-4 border-t border-gray-200 mt-auto">
                                     <div className="flex gap-3">
+                                        {selectedOrder.status === 'Pending' && (
+                                            <>
+                                                <button onClick={() => handleOrderAction(selectedOrder.purchase_order_id, 'Approved')} className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium shadow-sm">
+                                                    Approve
+                                                </button>
+                                                <button onClick={() => handleOrderAction(selectedOrder.purchase_order_id, 'Rejected')} className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium shadow-sm">
+                                                    Reject
+                                                </button>
+                                            </>
+                                        )}
                                         <button onClick={handleEditOrder} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
                                             Edit
                                         </button>
@@ -652,9 +736,9 @@ export default function PurchaseOrderScreen() {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {purchaseOrders.map((order) => (
-                                            <tr key={order.po_id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={order.purchase_order_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{order.po_id}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{order.purchase_order_id}</div>
                                                     <div className="text-sm text-gray-500">{order.requesterName}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.department}</td>
@@ -665,7 +749,13 @@ export default function PurchaseOrderScreen() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button type="button" onClick={() => handleViewDetails(order)} className="text-indigo-600 hover:text-indigo-900 font-medium">View Details</button>
+                                                    <button type="button" onClick={() => handleViewDetails(order)} className="text-indigo-600 hover:text-indigo-900 font-medium mr-4">View Details</button>
+                                                    {order.status === 'Pending' && (
+                                                        <>
+                                                            <button type="button" onClick={() => handleOrderAction(order.purchase_order_id, 'Approved')} className="text-green-600 hover:text-green-900 font-medium mr-4">Approve</button>
+                                                            <button type="button" onClick={() => handleOrderAction(order.purchase_order_id, 'Rejected')} className="text-red-600 hover:text-red-900 font-medium">Reject</button>
+                                                        </>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

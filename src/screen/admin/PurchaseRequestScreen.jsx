@@ -14,11 +14,23 @@ export default function PurchaseRequestScreen() {
     const [items, setItems] = useState([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
     const [activeTab, setActiveTab] = useState('create');
     const [inventoryList, setInventoryList] = useState([]);
+    const [adminName, setAdminName] = useState('Admin');
     
     useEffect(() => {
         fetchInventory();
         fetchPurchaseRequests();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchInventory = async () => {
         try {
@@ -71,22 +83,57 @@ export default function PurchaseRequestScreen() {
     };
 
     const handleDeleteRequest = async () => {
-        if (window.confirm(`Are you sure you want to delete purchase request ${selectedRequest.id}?`)) {
+        if (window.confirm(`Are you sure you want to delete purchase request ${selectedRequest.purchase_request_id}?`)) {
             try {
                 const { error } = await supabase
                     .from('purchase_requests')
                     .delete()
-                    .eq('pr_id', selectedRequest.pr_id);
+                    .eq('purchase_request_id', selectedRequest.purchase_request_id);
 
                 if (error) throw error;
 
-                setPurchaseRequests(prev => prev.filter(p => p.pr_id !== selectedRequest.pr_id));
+                setPurchaseRequests(prev => prev.filter(p => p.purchase_request_id !== selectedRequest.purchase_request_id));
                 closeModal();
                 alert('Purchase request deleted successfully.');
             } catch (error) {
                 console.error('Error deleting request:', error);
                 alert('Failed to delete request.');
             }
+        }
+    };
+
+    const handleRequestAction = async (requestId, action) => {
+        if (!window.confirm(`Are you sure you want to mark this request as ${action}?`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('purchase_requests')
+                .update({ 
+                    status: action,
+                    approved_by: adminName 
+                })
+                .eq('purchase_request_id', requestId);
+
+            if (error) throw error;
+            
+            setPurchaseRequests(prevRequests => 
+                prevRequests.map(req => 
+                    req.purchase_request_id === requestId 
+                        ? { ...req, status: action, approved_by: adminName } 
+                        : req
+                )
+            );
+            
+            if (selectedRequest && selectedRequest.purchase_request_id === requestId) {
+                setSelectedRequest({ ...selectedRequest, status: action, approved_by: adminName });
+            }
+            
+            alert(`Request successfully ${action.toLowerCase()} by ${adminName}.`);
+        } catch (err) {
+            console.error(`Error updating request to ${action}:`, err.message);
+            alert(`Failed to update the purchase request: ${err.message}`);
         }
     };
 
@@ -101,12 +148,12 @@ export default function PurchaseRequestScreen() {
                     requestDate: editForm.requestDate,
                     items: editForm.items
                 })
-                .eq('pr_id', editForm.pr_id)
+                .eq('purchase_request_id', editForm.purchase_request_id)
                 .select();
 
             if (error) throw error;
 
-            setPurchaseRequests(prev => prev.map(p => p.pr_id === editForm.pr_id ? data[0] : p));
+            setPurchaseRequests(prev => prev.map(p => p.purchase_request_id === editForm.purchase_request_id ? data[0] : p));
             setSelectedRequest(data[0]);
             setIsEditingRequest(false);
             alert('Purchase request updated successfully!');
@@ -155,7 +202,7 @@ export default function PurchaseRequestScreen() {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Purchase Request - ${selectedRequest.pr_id}</title>
+                    <title>Purchase Request - ${selectedRequest.purchase_request_id}</title>
                     <style>
                         body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
                         h1 { text-align: center; color: #111; margin-bottom: 5px; }
@@ -173,7 +220,7 @@ export default function PurchaseRequestScreen() {
                 </head>
                 <body>
                     <h1>Purchase Request</h1>
-                    <h3>${selectedRequest.pr_id}</h3>
+                    <h3>${selectedRequest.purchase_request_id}</h3>
                     
                     <div class="info-grid">
                         <div>
@@ -210,6 +257,16 @@ export default function PurchaseRequestScreen() {
                             `).join('') : '<tr><td colspan="4" style="text-align: center">No items found</td></tr>'}
                         </tbody>
                     </table>
+                    
+                    ${selectedRequest.approved_by ? `
+                    <div style="margin-top: 40px; text-align: right;">
+                        <p style="color: #555; font-size: 0.85em; margin-bottom: 5px; text-transform: uppercase;">${selectedRequest.status === 'Rejected' ? 'Rejected By:' : 'Approved By:'}</p>
+                        <div style="display: inline-block; min-width: 200px; border-bottom: 1px solid #000; padding-bottom: 5px; font-weight: bold; text-transform: uppercase;">
+                            ${selectedRequest.approved_by}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div class="footer">
                         <p>Generated on: ${new Date().toLocaleDateString()}</p>
                     </div>
@@ -274,7 +331,7 @@ export default function PurchaseRequestScreen() {
         const newId = `PR-${new Date().getFullYear()}-${randomNum}`;
         
         const newRequest = {
-            pr_id: newId,
+            purchase_request_id: newId,
             requesterName,
             department,
             requestDate,
@@ -398,14 +455,14 @@ export default function PurchaseRequestScreen() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
                     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">{isEditingRequest ? `Edit Purchase Request: ${selectedRequest.pr_id}` : <>Purchase Request Details: <span className="text-indigo-600">{selectedRequest.pr_id}</span></>}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">{isEditingRequest ? `Edit Purchase Request: ${selectedRequest.purchase_request_id}` : <>Purchase Request Details: <span className="text-indigo-600">{selectedRequest.purchase_request_id}</span></>}</h3>
                             <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
                         </div>
                         
                         {isEditingRequest && editForm ? renderEditForm() : (
                             <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                                 {/* Requester Info Read-Only */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
                                     <div>
                                         <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
                                         <p className="font-semibold text-gray-900">{selectedRequest.requesterName}</p>
@@ -418,6 +475,16 @@ export default function PurchaseRequestScreen() {
                                         <p className="text-sm font-medium text-gray-500 mb-1">Date of Request</p>
                                         <p className="font-semibold text-gray-900">{selectedRequest.requestDate}</p>
                                     </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500 mb-1">Status</p>
+                                        <p className="font-semibold text-gray-900"><span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(selectedRequest.status)}`}>{selectedRequest.status}</span></p>
+                                    </div>
+                                    {selectedRequest.approved_by && (
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-500 mb-1">Action By</p>
+                                            <p className="font-semibold text-gray-900">{selectedRequest.approved_by}</p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Items Table Read-Only */}
@@ -447,6 +514,16 @@ export default function PurchaseRequestScreen() {
 
                                 <div className="flex justify-between items-center shrink-0 pt-4 border-t border-gray-200 mt-auto">
                                     <div className="flex gap-3">
+                                        {selectedRequest.status === 'Pending' && (
+                                            <>
+                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Approved')} className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium shadow-sm">
+                                                    Approve
+                                                </button>
+                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Rejected')} className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium shadow-sm">
+                                                    Reject
+                                                </button>
+                                            </>
+                                        )}
                                         <button onClick={handleEditRequest} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
                                             Edit
                                         </button>
@@ -647,9 +724,9 @@ export default function PurchaseRequestScreen() {
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
                                         {purchaseRequests.map((req) => (
-                                            <tr key={req.pr_id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={req.purchase_request_id} className="hover:bg-gray-50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{req.pr_id}</div>
+                                                    <div className="text-sm font-medium text-gray-900">{req.purchase_request_id}</div>
                                                     <div className="text-sm text-gray-500">{req.requesterName}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.department}</td>
@@ -660,7 +737,13 @@ export default function PurchaseRequestScreen() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button type="button" onClick={() => handleViewDetails(req)} className="text-indigo-600 hover:text-indigo-900 font-medium">View Details</button>
+                                                    <button type="button" onClick={() => handleViewDetails(req)} className="text-indigo-600 hover:text-indigo-900 font-medium mr-4">View Details</button>
+                                                    {req.status === 'Pending' && (
+                                                        <>
+                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Approved')} className="text-green-600 hover:text-green-900 font-medium mr-4">Approve</button>
+                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Rejected')} className="text-red-600 hover:text-red-900 font-medium">Reject</button>
+                                                        </>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
