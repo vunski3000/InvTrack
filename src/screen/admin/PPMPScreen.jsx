@@ -16,6 +16,17 @@ export default function PPMPScreen() {
     const [units, setUnits] = useState([]);
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
     const [adminName, setAdminName] = useState('Admin');
+    const [inventoryList, setInventoryList] = useState([]);
+
+    const fetchInventory = async () => {
+        try {
+            const { data, error } = await supabase.from('inventory_procurement').select('*').order('item_id', { ascending: true });
+            if (error) throw error;
+            if (data) setInventoryList(data);
+        } catch (err) {
+            console.error("Error fetching inventory:", err.message);
+        }
+    };
 
     useEffect(() => {
         const fetchPPMPS = async () => {
@@ -53,6 +64,7 @@ export default function PPMPScreen() {
         fetchPPMPS();
         fetchUnits();
         fetchAdminDetails();
+        fetchInventory();
     }, []);
 
     const handleViewDetails = (ppmp) => {
@@ -68,28 +80,85 @@ export default function PPMPScreen() {
 
     const handleOpenCreateModal = () => {
         const currentYear = new Date().getFullYear().toString();
-        const yearPpmps = ppmps.filter(p => p.ppmp_id && p.ppmp_id.startsWith(`PPMP-${currentYear}-`));
-        let nextNum = 1;
-        if (yearPpmps.length > 0) {
-            const nums = yearPpmps.map(p => parseInt(p.ppmp_id.split('-')[2], 10)).filter(n => !isNaN(n));
-            if (nums.length > 0) nextNum = Math.max(...nums) + 1;
-        }
+
+        let maxId = 0;
+        inventoryList.forEach(item => {
+            if (item.item_id > maxId) maxId = item.item_id;
+        });
+        const nextSku = `ITM-${String(maxId + 1).padStart(4, '0')}`;
 
         setPpmpForm({
-            ppmp_id: `PPMP-${currentYear}-${String(nextNum).padStart(2, '0')}`,
+            ppmp_id: '',
             name: '',
             department: '',
             year: currentYear,
-            items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
+            items: [{ itemNumber: nextSku, itemDescription: '', quantity: '', unit: '' }]
         });
         setIsCreateModalOpen(true);
+    };
+
+    const syncNewItemsToInventory = async (items) => {
+        const defaultCategory = 'General'; // Ensure this matches your preferred default category
+
+        // Ensure the default category exists to prevent foreign key constraint errors
+        try {
+            const { data: existingCat } = await supabase.from('categories').select('*').ilike('category_name', defaultCategory);
+            if (!existingCat || existingCat.length === 0) {
+                await supabase.from('categories').insert([{ category_name: defaultCategory }]);
+            }
+        } catch (e) {
+            console.warn("Could not check/create default category:", e.message);
+        }
+
+        const newInventoryItemsMap = new Map();
+        for (const item of items) {
+            const parsedId = parseInt(item.itemNumber.replace('ITM-', ''), 10);
+            if (!isNaN(parsedId)) {
+                const exists = inventoryList.find(inv => inv.item_id === parsedId);
+                if (!exists && !newInventoryItemsMap.has(parsedId)) {
+                    newInventoryItemsMap.set(parsedId, {
+                        item_id: parsedId,
+                        item: item.itemDescription,
+                        category_name: defaultCategory,
+                        quantity_available: 0,
+                        unit_name: item.unit
+                    });
+                }
+            }
+        }
+        const newInventoryItems = Array.from(newInventoryItemsMap.values());
+        if (newInventoryItems.length > 0) {
+            const { error } = await supabase.from('inventory_procurement').insert(newInventoryItems);
+            if (error) throw error;
+            await logAudit(adminName, 'Add Items', `Added ${newInventoryItems.length} new items to inventory from PPMP`);
+            await fetchInventory();
+        }
     };
 
     const handleCreatePPMP = async (e) => {
         e.preventDefault();
         try {
+            // Dynamically query the database on submit to prevent duplicate ID errors
+            const { data: yearPpmps, error: fetchError } = await supabase
+                .from('ppmps')
+                .select('ppmp_id')
+                .ilike('ppmp_id', `PPMP-${ppmpForm.year}-%`);
+            if (fetchError) throw fetchError;
+
+            let nextNum = 1;
+            if (yearPpmps && yearPpmps.length > 0) {
+                const nums = yearPpmps.map(p => {
+                    const parts = p.ppmp_id.split('-');
+                    return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                }).filter(n => !isNaN(n));
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+            }
+            const newPpmpId = `PPMP-${ppmpForm.year}-${String(nextNum).padStart(2, '0')}`;
+
+            await syncNewItemsToInventory(ppmpForm.items);
+
             const { error } = await supabase.from('ppmps').insert([{
-                ppmp_id: ppmpForm.ppmp_id,
+                ppmp_id: newPpmpId,
                 name: ppmpForm.name,
                 department: ppmpForm.department,
                 year: ppmpForm.year,
@@ -98,7 +167,7 @@ export default function PPMPScreen() {
             if (error) throw error;
             
             // Audit Log
-            await logAudit(adminName, 'Create PPMP', `Created new PPMP ${ppmpForm.ppmp_id} (${ppmpForm.name})`);
+            await logAudit(adminName, 'Create PPMP', `Created new PPMP ${newPpmpId} (${ppmpForm.name})`);
 
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
@@ -118,6 +187,8 @@ export default function PPMPScreen() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         try {
+            await syncNewItemsToInventory(ppmpForm.items);
+
             const { error } = await supabase.from('ppmps').update({
                 name: ppmpForm.name,
                 department: ppmpForm.department,
@@ -255,7 +326,19 @@ export default function PPMPScreen() {
     };
 
     const handleAddItem = () => {
-        setPpmpForm({ ...ppmpForm, items: [...ppmpForm.items, { itemNumber: '', itemDescription: '', quantity: '', unit: '' }] });
+        let maxId = 0;
+        inventoryList.forEach(item => {
+            if (item.item_id > maxId) maxId = item.item_id;
+        });
+        ppmpForm.items.forEach(item => {
+            if (item.itemNumber && item.itemNumber.startsWith('ITM-')) {
+                const num = parseInt(item.itemNumber.replace('ITM-', ''), 10);
+                if (!isNaN(num) && num > maxId) maxId = num;
+            }
+        });
+        const nextSku = `ITM-${String(maxId + 1).padStart(4, '0')}`;
+        
+        setPpmpForm({ ...ppmpForm, items: [...ppmpForm.items, { itemNumber: nextSku, itemDescription: '', quantity: '', unit: '' }] });
     };
 
     const handleRemoveItem = (index) => {

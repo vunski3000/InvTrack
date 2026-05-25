@@ -99,21 +99,35 @@ export default function PurchaseOrderScreen() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // Generate a custom ID, e.g., PO-2026-1234
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        const newId = `PO-${new Date().getFullYear()}-${randomNum}`;
-        
-        const newOrder = {
-            purchase_order_id: newId,
-            requesterName,
-            department,
-            requestDate,
-            status: 'Pending',
-            items
-        };
 
         try {
+            // Dynamically query the database on submit to prevent duplicate ID errors
+            const currentYear = new Date().getFullYear().toString();
+            const { data: yearOrders, error: fetchError } = await supabase
+                .from('purchase_orders')
+                .select('purchase_order_id')
+                .ilike('purchase_order_id', `PO-${currentYear}-%`);
+            if (fetchError) throw fetchError;
+
+            let nextNum = 1;
+            if (yearOrders && yearOrders.length > 0) {
+                const nums = yearOrders.map(p => {
+                    const parts = p.purchase_order_id.split('-');
+                    return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                }).filter(n => !isNaN(n));
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+            }
+            const newId = `PO-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+
+            const newOrder = {
+                purchase_order_id: newId,
+                requesterName,
+                department,
+                requestDate,
+                status: 'Pending',
+                items
+            };
+
             const { data, error } = await supabase
                 .from('purchase_orders')
                 .insert([newOrder])
@@ -121,6 +135,9 @@ export default function PurchaseOrderScreen() {
 
             if (error) throw error;
             
+            // Audit Log
+            await logAudit(adminName, 'Create Purchase Order', `Created new purchase order ${newId}`);
+
             alert('Purchase Order created successfully!');
             setPurchaseOrders(prev => [data[0], ...prev]);
             setRequesterName('');

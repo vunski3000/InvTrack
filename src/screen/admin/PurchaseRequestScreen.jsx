@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Navigation from "./Navigation";
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function PurchaseRequestScreen() {
     const navigate = useNavigate();
@@ -325,21 +326,35 @@ export default function PurchaseRequestScreen() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // Generate a custom ID, e.g., PR-2026-1234
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
-        const newId = `PR-${new Date().getFullYear()}-${randomNum}`;
-        
-        const newRequest = {
-            purchase_request_id: newId,
-            requesterName,
-            department,
-            requestDate,
-            status: 'Pending',
-            items
-        };
 
         try {
+            // Dynamically query the database on submit to prevent duplicate ID errors
+            const currentYear = new Date().getFullYear().toString();
+            const { data: yearReqs, error: fetchError } = await supabase
+                .from('purchase_requests')
+                .select('purchase_request_id')
+                .ilike('purchase_request_id', `PR-${currentYear}-%`);
+            if (fetchError) throw fetchError;
+
+            let nextNum = 1;
+            if (yearReqs && yearReqs.length > 0) {
+                const nums = yearReqs.map(p => {
+                    const parts = p.purchase_request_id.split('-');
+                    return parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                }).filter(n => !isNaN(n));
+                if (nums.length > 0) nextNum = Math.max(...nums) + 1;
+            }
+            const newId = `PR-${currentYear}-${String(nextNum).padStart(4, '0')}`;
+
+            const newRequest = {
+                purchase_request_id: newId,
+                requesterName,
+                department,
+                requestDate,
+                status: 'Pending',
+                items
+            };
+
             const { data, error } = await supabase
                 .from('purchase_requests')
                 .insert([newRequest])
@@ -347,6 +362,9 @@ export default function PurchaseRequestScreen() {
 
             if (error) throw error;
             
+            // Audit Log
+            await logAudit(adminName, 'Create Purchase Request', `Created new purchase request ${newId}`);
+
             alert('Purchase Request submitted successfully!');
             setPurchaseRequests(prev => [data[0], ...prev]);
             setRequesterName('');
