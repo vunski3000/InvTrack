@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StaffNavigation from "./StaffNavigation";
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function StaffPPMPScreen() {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function StaffPPMPScreen() {
     const [isEditingPPMP, setIsEditingPPMP] = useState(false);
     const [units, setUnits] = useState([]);
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
+    const [staffName, setStaffName] = useState('Staff');
 
     useEffect(() => {
         const fetchPPMPS = async () => {
@@ -37,8 +39,28 @@ export default function StaffPPMPScreen() {
             }
         };
 
+        const fetchStaffDetails = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user && user.email) {
+                    const staffIdString = user.email.split('@')[0];
+                    const staffIdNum = parseInt(staffIdString.replace('-', ''), 10);
+                    const { data: personnel } = await supabase
+                        .from('personnel')
+                        .select('name')
+                        .eq('personnel_id', staffIdNum)
+                        .single();
+                    if (personnel && personnel.name) setStaffName(personnel.name);
+                    else setStaffName(staffIdString);
+                }
+            } catch (err) {
+                console.error("Error fetching staff details:", err);
+            }
+        };
+
         fetchPPMPS();
         fetchUnits();
+        fetchStaffDetails();
     }, []);
 
     const handleViewDetails = (ppmp) => {
@@ -63,6 +85,9 @@ export default function StaffPPMPScreen() {
             const { error } = await supabase.from('ppmps').update({ items: ppmpForm.items }).eq('ppmp_id', ppmpForm.ppmp_id);
             if (error) throw error;
             
+            // Audit Log
+            await logAudit(staffName, 'Edit PPMP', `Updated items for PPMP ${ppmpForm.ppmp_id} (${ppmpForm.name})`);
+
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
             

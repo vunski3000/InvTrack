@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import StaffNavigation from "./StaffNavigation";
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function StaffRequestScreen() {
     const navigate = useNavigate();
@@ -181,11 +182,7 @@ export default function StaffRequestScreen() {
             if (notifError) console.error("Failed to send notification:", notifError);
 
             // Audit Log
-            await supabase.from('audit_logs').insert([{
-                user_name: name,
-                action: 'Submit Request',
-                details: `Submitted new requisition request ${newId}`
-            }]);
+            await logAudit(name, 'Submit Request', `Submitted new requisition request ${newId}`);
 
             alert('Item requested successfully!');
             setDepartment('');

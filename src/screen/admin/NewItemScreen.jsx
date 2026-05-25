@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function NewItemScreen() {
     const navigate = useNavigate();
@@ -13,11 +14,23 @@ export default function NewItemScreen() {
     const [unit, setUnit] = useState('');
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
+    const [adminName, setAdminName] = useState('Admin');
     
     useEffect(() => {
         fetchCategories();
         fetchUnits();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchCategories = async () => {
         try {
@@ -76,6 +89,9 @@ export default function NewItemScreen() {
                 ]);
 
             if (insertError) throw insertError;
+
+            // Audit Log
+            await logAudit(adminName, 'Add Item', `Added new item ITM-${String(nextId).padStart(4, '0')} (${itemName}) to inventory`);
 
             alert('Item added successfully!');
             navigate('/inventory');

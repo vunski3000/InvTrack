@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function PurchaseOrderScreen() {
     const navigate = useNavigate();
@@ -225,11 +226,7 @@ export default function PurchaseOrderScreen() {
             }
             
             // Generate an automated Audit Log entry
-            await supabase.from('audit_logs').insert([{
-                user_name: adminName,
-                action: `Purchase Order ${action}`,
-                details: `Marked purchase order ${orderId} as ${action}`
-            }]);
+            await logAudit(adminName, `Purchase Order ${action}`, `Marked purchase order ${orderId} as ${action}`);
             
             alert(`Order successfully ${action.toLowerCase()} by ${adminName}.`);
         } catch (err) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from "./Navigation";
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function PPMPScreen() {
     const navigate = useNavigate();
@@ -14,6 +15,7 @@ export default function PPMPScreen() {
     const [isEditingPPMP, setIsEditingPPMP] = useState(false);
     const [units, setUnits] = useState([]);
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
+    const [adminName, setAdminName] = useState('Admin');
 
     useEffect(() => {
         const fetchPPMPS = async () => {
@@ -38,8 +40,19 @@ export default function PPMPScreen() {
             }
         };
 
+        const fetchAdminDetails = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user && user.email) {
+                const extractedUsername = user.email.split('@')[0];
+                if (extractedUsername === '19987975') setAdminName('Admin1');
+                else if (extractedUsername === '19987941') setAdminName('Admin2');
+                else setAdminName(extractedUsername);
+            }
+        };
+
         fetchPPMPS();
         fetchUnits();
+        fetchAdminDetails();
     }, []);
 
     const handleViewDetails = (ppmp) => {
@@ -84,6 +97,9 @@ export default function PPMPScreen() {
             }]);
             if (error) throw error;
             
+            // Audit Log
+            await logAudit(adminName, 'Create PPMP', `Created new PPMP ${ppmpForm.ppmp_id} (${ppmpForm.name})`);
+
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
             
@@ -110,6 +126,9 @@ export default function PPMPScreen() {
             }).eq('ppmp_id', ppmpForm.ppmp_id);
             if (error) throw error;
             
+            // Audit Log
+            await logAudit(adminName, 'Edit PPMP', `Updated PPMP ${ppmpForm.ppmp_id} (${ppmpForm.name})`);
+
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
             
@@ -128,6 +147,9 @@ export default function PPMPScreen() {
                 const { error } = await supabase.from('ppmps').delete().eq('ppmp_id', selectedPPMP.ppmp_id);
                 if (error) throw error;
                 
+                // Audit Log
+                await logAudit(adminName, 'Delete PPMP', `Deleted PPMP ${selectedPPMP.ppmp_id} (${selectedPPMP.name})`);
+
                 setPpmps(prev => prev.filter(p => p.ppmp_id !== selectedPPMP.ppmp_id));
                 closeModal();
             } catch (err) {

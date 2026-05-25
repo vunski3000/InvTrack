@@ -10,6 +10,7 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import { logAudit } from '../../utils/auditLogger';
 
 ChartJS.register(ArcElement, Title, Tooltip, Legend);
 
@@ -22,12 +23,24 @@ export default function DashboardScreen() {
     const [editingItem, setEditingItem] = useState(null);
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
+    const [adminName, setAdminName] = useState('Admin');
 
     useEffect(() => {
         fetchInventory();
         fetchCategories();
         fetchUnits();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchInventory = async () => {
         try {
@@ -94,6 +107,9 @@ export default function DashboardScreen() {
 
             if (error) throw error;
 
+            // Audit Log
+            await logAudit(adminName, 'Update Item', `Updated item ITM-${String(editingItem.item_id).padStart(4, '0')} (${editingItem.item})`);
+
             setInventory(prevInventory =>
                 prevInventory.map(item =>
                     item.item_id === editingItem.item_id ? { ...editingItem, quantity_available: updatedQuantity } : item
@@ -141,6 +157,28 @@ export default function DashboardScreen() {
                 }
             }
             setEditingItem(prev => ({ ...prev, unit: lowerUnit, unit_name: lowerUnit }));
+        }
+    };
+
+    const handleDeleteItem = async (itemId) => {
+        if (window.confirm("Are you sure you want to delete this item?")) {
+            try {
+                const itemToDelete = inventory.find(i => i.item_id === itemId);
+
+                const { error } = await supabase
+                    .from('inventory_procurement')
+                    .delete()
+                    .eq('item_id', itemId);
+                if (error) throw error;
+                
+                // Audit Log
+                await logAudit(adminName, 'Delete Item', `Deleted item ITM-${String(itemId).padStart(4, '0')} ${itemToDelete ? `(${itemToDelete.item})` : ''}`);
+
+                setInventory(prev => prev.filter(item => item.item_id !== itemId));
+            } catch (err) {
+                console.error("Error deleting item:", err.message);
+                alert("Failed to delete item: " + err.message);
+            }
         }
     };
 
@@ -387,7 +425,7 @@ export default function DashboardScreen() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
-                                                    <span className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
+                                                <span onClick={() => handleDeleteItem(item.item_id)} className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                                 </td>
                                             </tr>
                                         )})}

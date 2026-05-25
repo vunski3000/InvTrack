@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function AdminRequestScreen() {
     const navigate = useNavigate();
@@ -93,11 +94,7 @@ export default function AdminRequestScreen() {
                 }
 
                 // Audit Log
-                await supabase.from('audit_logs').insert([{
-                    user_name: adminName,
-                    action: 'Delete Request',
-                    details: `Deleted request ${requestId} requested by ${requestToDelete ? requestToDelete.name : 'Unknown'}`
-                }]);
+                await logAudit(adminName, 'Delete Request', `Deleted request ${requestId} requested by ${requestToDelete ? requestToDelete.name : 'Unknown'}`);
 
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();
@@ -151,11 +148,7 @@ export default function AdminRequestScreen() {
             ));
             
             // Audit Log
-            await supabase.from('audit_logs').insert([{
-                user_name: adminName,
-                action: 'Update Notes',
-                details: `Updated notes for request ${selectedRequest.request_id}`
-            }]);
+            await logAudit(adminName, 'Update Notes', `Updated notes for request ${selectedRequest.request_id}`);
 
             setSelectedRequest(prev => ({ ...prev, remarks: updatedRemarks, admin_note: updatedAdminNote }));
             setRemarks('');
@@ -222,11 +215,7 @@ export default function AdminRequestScreen() {
             if (notifError) console.error("Failed to send notification:", notifError);
 
             // Audit Log
-            await supabase.from('audit_logs').insert([{
-                user_name: adminName,
-                action: `Update Status: ${newStatus}`,
-                details: `Updated request ${selectedRequest.request_id} to ${newStatus}`
-            }]);
+            await logAudit(adminName, `Update Status: ${newStatus}`, `Updated request ${selectedRequest.request_id} to ${newStatus}`);
 
             setRequests(prev => prev.map(req => 
                 req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req

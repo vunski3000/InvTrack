@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function InventoryScreen() {
     const navigate = useNavigate();
@@ -9,12 +10,24 @@ export default function InventoryScreen() {
     const [inventory, setInventory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [adminName, setAdminName] = useState('Admin');
 
     useEffect(() => {
         fetchInventory();
         fetchCategories();
         fetchUnits();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchInventory = async () => {
         try {
@@ -141,6 +154,9 @@ export default function InventoryScreen() {
 
             if (error) throw error;
 
+            // Audit Log
+            await logAudit(adminName, 'Add Items', `Added ${itemsToInsert.length} new items to inventory`);
+
             await fetchInventory(); // Securely refresh the list from the database
             handleCloseAddModal();
         } catch (err) {
@@ -164,6 +180,9 @@ export default function InventoryScreen() {
                 .eq('item_id', editingItem.item_id);
 
             if (error) throw error;
+
+            // Audit Log
+            await logAudit(adminName, 'Update Item', `Updated item ITM-${String(editingItem.item_id).padStart(4, '0')} (${editingItem.item})`);
 
             setInventory(prevInventory =>
                 prevInventory.map(item =>
@@ -240,11 +259,17 @@ export default function InventoryScreen() {
     const handleDeleteItem = async (itemId) => {
         if (window.confirm("Are you sure you want to delete this item?")) {
             try {
+                const itemToDelete = inventory.find(i => i.item_id === itemId);
+
                 const { error } = await supabase
                     .from('inventory_procurement')
                     .delete()
                     .eq('item_id', itemId);
                 if (error) throw error;
+                
+                // Audit Log
+                await logAudit(adminName, 'Delete Item', `Deleted item ITM-${String(itemId).padStart(4, '0')} ${itemToDelete ? `(${itemToDelete.item})` : ''}`);
+
                 setInventory(prev => prev.filter(item => item.item_id !== itemId));
             } catch (err) {
                 console.error("Error deleting item:", err.message);
@@ -295,6 +320,9 @@ export default function InventoryScreen() {
             const { error } = await supabase.from('ppmps').insert([{ ppmp_id: newId, name: ppmpForm.name, department: ppmpForm.department, year: ppmpForm.year, items: mappedItems }]);
             if (error) throw error;
 
+            // Audit Log
+            await logAudit(adminName, 'Create PPMP', `Created new PPMP ${newId} (${ppmpForm.name})`);
+
             alert('PPMP created successfully!');
             setIsPPMPModalOpen(false);
             setIsCreatingPPMP(false);
@@ -308,11 +336,22 @@ export default function InventoryScreen() {
         }
     };
 
-    const handleGenerateStockCard = () => {
+    const handleGenerateStockCard = async () => {
         if (!selectedForStockCard) return;
 
         const printWindow = window.open('', '_blank');
         
+                
+        // Audit Log
+        try {
+            await supabase.from('audit_logs').insert([{
+                user_name: adminName,
+                action: 'Generate Stock Card',
+                details: `Generated stock card for item ITM-${String(selectedForStockCard.item_id).padStart(4, '0')} (${selectedForStockCard.item})`
+            }]);
+        } catch (err) {
+            console.error("Error logging stock card generation:", err.message);
+        }
         const html = `
             <!DOCTYPE html>
             <html>
