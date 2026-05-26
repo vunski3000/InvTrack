@@ -1,42 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }) {
-    const [isAuthorized, setIsAuthorized] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const checkAuth = async () => {
-        try {
-            // 1. Get the current active session from Supabase
-            const { data: { session }, error } = await supabase.auth.getSession();
-            
-            if (error || !session) {
-                setIsAuthorized(false);
-                return;
-            }
-
-            // 2. Extract the role we saved in the user's metadata
-            const userRole = session.user?.user_metadata?.role;
-            
-            // 3. Verify if the user has one of the allowed roles for this route
-            if (allowedRoles && allowedRoles.length > 0) {
-                setIsAuthorized(allowedRoles.includes(userRole));
-            } else {
-                // If no specific roles were requested, just being logged in is enough
-                setIsAuthorized(true);
-            }
-        } catch (err) {
-            console.error("Auth check error:", err);
-            setIsAuthorized(false);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { user, role, loading } = useAuth();
 
     if (loading) {
         return (
@@ -47,6 +14,17 @@ export default function ProtectedRoute({ children, allowedRoles, redirectTo = '/
         );
     }
 
-    // 4. Render the component if authorized, otherwise navigate back to the fallback route
-    return isAuthorized ? children : <Navigate to={redirectTo} replace />;
+    if (!user) {
+        return <Navigate to={redirectTo} replace />;
+    }
+
+    if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+        // User is logged in but doesn't have the right role, send them to their specific dashboard
+        if (role === 'admin') return <Navigate to="/dashboard" replace />;
+        if (role === 'staff') return <Navigate to="/staff-dashboard" replace />;
+        if (role === 'sysadmin') return <Navigate to="/sysadmin-dashboard" replace />;
+        return <Navigate to="/" replace />;
+    }
+
+    return children;
 }

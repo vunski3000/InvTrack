@@ -93,6 +93,9 @@ export default function PurchaseRequestScreen() {
 
                 if (error) throw error;
 
+                // Audit Log
+                await logAudit(adminName, 'Delete Purchase Request', `Deleted purchase request ${selectedRequest.purchase_request_id}`);
+
                 setPurchaseRequests(prev => prev.filter(p => p.purchase_request_id !== selectedRequest.purchase_request_id));
                 closeModal();
                 alert('Purchase request deleted successfully.');
@@ -131,6 +134,9 @@ export default function PurchaseRequestScreen() {
                 setSelectedRequest({ ...selectedRequest, status: action, approved_by: adminName });
             }
             
+            // Audit Log
+            await logAudit(adminName, `Purchase Request ${action}`, `Marked purchase request ${requestId} as ${action}`);
+            
             alert(`Request successfully ${action.toLowerCase()} by ${adminName}.`);
         } catch (err) {
             console.error(`Error updating request to ${action}:`, err.message);
@@ -157,6 +163,10 @@ export default function PurchaseRequestScreen() {
             setPurchaseRequests(prev => prev.map(p => p.purchase_request_id === editForm.purchase_request_id ? data[0] : p));
             setSelectedRequest(data[0]);
             setIsEditingRequest(false);
+            
+            // Audit Log
+            await logAudit(adminName, 'Edit Purchase Request', `Updated purchase request ${editForm.purchase_request_id}`);
+            
             alert('Purchase request updated successfully!');
         } catch (error) {
             console.error('Error updating request:', error);
@@ -194,10 +204,13 @@ export default function PurchaseRequestScreen() {
         setEditForm({ ...editForm, items: newItems });
     };
 
-    const handleGeneratePR = () => {
+    const handleGeneratePR = async () => {
         if (!selectedRequest) return;
 
         const printWindow = window.open('', '_blank');
+        
+        // Audit Log
+        await logAudit(adminName, 'Generate Purchase Request', `Generated purchase request form for ${selectedRequest.purchase_request_id}`);
         
         const html = `
             <!DOCTYPE html>

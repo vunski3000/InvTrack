@@ -178,6 +178,9 @@ export default function PurchaseOrderScreen() {
 
                 if (error) throw error;
 
+                // Audit Log
+                await logAudit(adminName, 'Delete Purchase Order', `Deleted purchase order ${selectedOrder.purchase_order_id}`);
+
                 setPurchaseOrders(prev => prev.filter(p => p.purchase_order_id !== selectedOrder.purchase_order_id));
                 closeModal();
                 alert('Purchase order deleted successfully.');
@@ -282,10 +285,13 @@ export default function PurchaseOrderScreen() {
         setEditForm({ ...editForm, items: newItems });
     };
 
-    const handleGeneratePO = () => {
+    const handleGeneratePO = async () => {
         if (!selectedOrder) return;
 
         const printWindow = window.open('', '_blank');
+        
+        // Audit Log
+        await logAudit(adminName, 'Generate Purchase Order', `Generated purchase order form for ${selectedOrder.purchase_order_id}`);
         
         const html = `
             <!DOCTYPE html>

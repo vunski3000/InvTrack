@@ -164,16 +164,24 @@ export default function AuditScreen() {
                             <input
                                 type="date"
                                 className="p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                value={startDate}
+                                value={startDate || ''}
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                             <label className="text-sm font-medium text-gray-500">To:</label>
                             <input
                                 type="date"
                                 className="p-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                value={endDate}
+                                value={endDate || ''}
                                 onChange={(e) => setEndDate(e.target.value)}
                             />
+                            {(startDate || endDate) && (
+                                <button 
+                                    onClick={() => { setStartDate(''); setEndDate(''); }} 
+                                    className="px-2.5 py-1.5 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition-colors shadow-sm whitespace-nowrap"
+                                >
+                                    Clear Dates
+                                </button>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-3 shrink-0">

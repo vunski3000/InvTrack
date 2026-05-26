@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import StaffNavigation from './StaffNavigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function StaffMyRequestsScreen() {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [staffName, setStaffName] = useState('Staff');
 
     useEffect(() => {
         fetchMyRequests();
@@ -32,6 +34,9 @@ export default function StaffMyRequestsScreen() {
                     
                 if (personnelData && personnelData.name) {
                     realName = personnelData.name;
+                    setStaffName(realName);
+                } else {
+                    setStaffName(staffIdString);
                 }
             }
 
@@ -80,6 +85,9 @@ export default function StaffMyRequestsScreen() {
                 
                 if (error) throw error;
                 
+                // Audit Log
+                await logAudit(staffName, 'Delete Request', `Deleted my request ${requestId}`);
+
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();
                 alert("Request deleted successfully!");
@@ -90,10 +98,13 @@ export default function StaffMyRequestsScreen() {
         }
     };
 
-    const handleGenerateRequest = () => {
+    const handleGenerateRequest = async () => {
         if (!selectedRequest) return;
 
         const printWindow = window.open('', '_blank');
+        
+        // Audit Log
+        await logAudit(staffName, 'Generate Requisition', `Generated requisition form for my request ${selectedRequest.request_id}`);
         
         const html = `
             <!DOCTYPE html>

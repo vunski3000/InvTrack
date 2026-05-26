@@ -229,10 +229,13 @@ export default function AdminRequestScreen() {
         }
     };
 
-    const handleGenerateRequest = () => {
+    const handleGenerateRequest = async () => {
         if (!selectedRequest) return;
 
         const printWindow = window.open('', '_blank');
+        
+        // Audit Log
+        await logAudit(adminName, 'Generate Requisition', `Generated requisition form for ${selectedRequest.request_id}`);
         
         const html = `
             <!DOCTYPE html>
