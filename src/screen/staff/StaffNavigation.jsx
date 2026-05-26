@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function StaffNavigation() {
     const navigate = useNavigate();
@@ -11,13 +12,12 @@ export default function StaffNavigation() {
     const [notifications, setNotifications] = useState([]);
     const [activeHighlights, setActiveHighlights] = useState(new Set());
     const [staffName, setStaffName] = useState('');
+    const { user } = useAuth();
 
     useEffect(() => {
         let intervalId;
 
-        const initAuthAndNotifications = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            
+        const initNotifications = async () => {
             if (user && user.email) {
                 // Ensure only staff users are displayed on the staff navigation
                 if (user.user_metadata?.role !== 'staff') {
@@ -71,14 +71,14 @@ export default function StaffNavigation() {
             }
         };
 
-        initAuthAndNotifications();
+        initNotifications();
 
         return () => {
             if (intervalId) {
                 clearInterval(intervalId);
             }
         };
-    }, []);
+    }, [user]);
 
     const handleNotificationClick = async () => {
         const isOpening = !notificationOpen;
