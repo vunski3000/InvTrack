@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
+import { logAudit } from '../../utils/auditLogger';
 
 export default function PersonnelScreen() {
     const [personnel, setPersonnel] = useState([]);
@@ -12,11 +13,23 @@ export default function PersonnelScreen() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [adminName, setAdminName] = useState('Admin');
 
     useEffect(() => {
         fetchPersonnel();
         fetchDepartments();
+        fetchAdminDetails();
     }, []);
+
+    const fetchAdminDetails = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.email) {
+            const extractedUsername = user.email.split('@')[0];
+            if (extractedUsername === '19987975') setAdminName('Admin1');
+            else if (extractedUsername === '19987941') setAdminName('Admin2');
+            else setAdminName(extractedUsername);
+        }
+    };
 
     const fetchPersonnel = async () => {
         try {
@@ -83,42 +96,59 @@ export default function PersonnelScreen() {
                 const { error } = await supabase.from('personnel').update(updatePayload).eq('personnel_id', editingId);
                 if (error) throw error;
                 
-                // Optimistically update the list so changes appear instantly
-                setPersonnel(prev => prev.map(p => 
-                    p.personnel_id === editingId ? { ...p, ...updatePayload, department: formData.department } : p
-                ));
+                // Audit Log
+                await logAudit(adminName, 'Update Personnel', `Updated personnel ${formData.name} (ID: ${formData.personnel_id})`);
                 
-                alert('Personnel updated successfully!');
+                window.showAlert('Personnel updated successfully!', 'Success', () => {
+                    // Optimistically update the list so changes appear instantly
+                    setPersonnel(prev => prev.map(p => 
+                        p.personnel_id === editingId ? { ...p, ...updatePayload, department: formData.department } : p
+                    ));
+                    setIsAddModalOpen(false);
+                    setFormData({ personnel_id: '', name: '', department: '', designation: '' });
+                    setIsEditMode(false);
+                    setEditingId(null);
+                });
             } else {
                 const { error } = await supabase.from('personnel').insert([dataToSave]);
                 if (error) throw error;
-                alert('Personnel added successfully!');
-                await fetchPersonnel();
+                
+                // Audit Log
+                await logAudit(adminName, 'Add Personnel', `Added new personnel ${formData.name} (ID: ${formData.personnel_id})`);
+                
+                window.showAlert('Personnel added successfully!', 'Success', async () => {
+                    await fetchPersonnel();
+                    setIsAddModalOpen(false);
+                    setFormData({ personnel_id: '', name: '', department: '', designation: '' });
+                    setIsEditMode(false);
+                    setEditingId(null);
+                });
             }
-
-            setIsAddModalOpen(false);
-            setFormData({ personnel_id: '', name: '', department: '', designation: '' });
-            setIsEditMode(false);
-            setEditingId(null);
         } catch (err) {
             console.error(`Error ${isEditMode ? 'updating' : 'adding'} personnel:`, err.message);
-            alert(`Failed to ${isEditMode ? 'update' : 'add'} personnel: ` + err.message);
+            window.showAlert(`Failed to ${isEditMode ? 'update' : 'add'} personnel: ` + err.message, 'Error');
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to remove this personnel?")) {
+        window.showConfirm("Are you sure you want to remove this personnel?", "Remove Personnel", async () => {
             try {
                 const { error } = await supabase.from('personnel').delete().eq('personnel_id', id);
                 if (error) throw error;
-                setPersonnel(prev => prev.filter(p => p.personnel_id !== id));
+                
+                // Audit Log
+                await logAudit(adminName, 'Delete Personnel', `Deleted personnel (ID: ${id})`);
+                
+                window.showAlert("Personnel removed successfully.", "Success", () => {
+                    setPersonnel(prev => prev.filter(p => p.personnel_id !== id));
+                });
             } catch (err) {
                 console.error("Error deleting personnel:", err.message);
-                alert("Failed to delete personnel: " + err.message);
+                window.showAlert("Failed to delete personnel: " + err.message, "Error");
             }
-        }
+        });
     };
 
     // Helper function to format IDs like 20260501 into 2026-0501
