@@ -445,38 +445,42 @@ export default function InventoryScreen() {
     const getStatusStyle = (status) => {
         switch (status) {
             case 'In Stock':
-                return 'bg-green-100 text-green-800 border-green-200';
+                return 'bg-emerald-50 text-emerald-700 border-emerald-100/80';
             case 'Low Stock':
-                return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                return 'bg-amber-50 text-amber-700 border-amber-100/80';
             case 'Out of Stock':
-                return 'bg-red-100 text-red-800 border-red-200';
+                return 'bg-rose-50 text-rose-700 border-rose-100/80';
             default:
-                return 'bg-gray-100 text-gray-800 border-gray-200';
+                return 'bg-slate-50 text-slate-700 border-slate-200/60';
         }
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/40 via-purple-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-blue-200/30 via-indigo-200/20 to-transparent blur-3xl pointer-events-none" />
+
             {/* Edit Item Modal */}
             {isEditModalOpen && editingItem && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300">
-                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">Edit Item</h3>
-                            <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                            <h3 className="text-xl font-black text-slate-800">Edit Item</h3>
+                            <button onClick={handleCloseEditModal} className="text-slate-400 hover:text-slate-600 text-2xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <form onSubmit={handleUpdateItem} className="space-y-6">
                             <div>
-                                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <label htmlFor="category" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category</label>
                                 <div className="flex space-x-2">
                                     <select
                                         id="category"
                                         name="category"
                                         value={editingItem.category || editingItem.category_name || ''}
                                         onChange={handleEditFormChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                     >
-                                    <option value="" disabled>Select a category</option>
+                                        <option value="" disabled>Select a category</option>
                                         {categories.map((cat) => (
                                             <option key={cat} value={cat}>{cat}</option>
                                         ))}
@@ -484,32 +488,32 @@ export default function InventoryScreen() {
                                     <button
                                         type="button"
                                         onClick={() => handleAddCategory()}
-                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                        className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-sm shadow-sm whitespace-nowrap cursor-pointer"
                                     >
                                         + Add
                                     </button>
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+                                <label htmlFor="quantity" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Stock Quantity</label>
                                 <input
                                     type="number"
                                     id="quantity"
                                     name="quantity_available"
                                     value={editingItem.quantity_available || ''}
                                     onChange={handleEditFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                <label htmlFor="unit" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Unit</label>
                                 <div className="flex space-x-2">
                                     <select
                                         id="unit"
                                         name="unit"
                                         value={editingItem.unit || editingItem.unit_name || ''}
                                         onChange={handleEditFormChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                     >
                                         <option value="" disabled>Select a unit</option>
                                         {units.map((u) => (
@@ -519,15 +523,15 @@ export default function InventoryScreen() {
                                     <button
                                         type="button"
                                         onClick={() => handleAddUnit()}
-                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                        className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-sm shadow-sm whitespace-nowrap cursor-pointer"
                                     >
                                         + Add
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-4 pt-4">
-                                <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">Save Changes</button>
+                            <div className="flex justify-end space-x-3 pt-4">
+                                <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer">Cancel</button>
+                                <button type="submit" className="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm cursor-pointer">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -536,61 +540,61 @@ export default function InventoryScreen() {
 
             {/* Add Item Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h3 className="text-2xl font-bold text-gray-800">Add New Items</h3>
-                            <button onClick={handleCloseAddModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                            <h3 className="text-xl font-black text-slate-800">Add New Items</h3>
+                            <button onClick={handleCloseAddModal} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <form onSubmit={handleCreateItem} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-                            <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-4 min-h-0">
-                                <table className="min-w-full divide-y divide-gray-200 relative">
-                                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                            <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-100 rounded-2xl mb-4 min-h-0 bg-white/40">
+                                <table className="min-w-full divide-y divide-slate-100 relative">
+                                    <thead className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
                                         <tr>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Name</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Description</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Category</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Initial Qty</th>
-                                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
-                                            <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-auto">Action</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Item Name</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Description</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Category</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Initial Qty</th>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/6">Unit</th>
+                                            <th scope="col" className="px-4 py-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider w-auto">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-transparent divide-y divide-slate-100">
                                         {newItems.map((item, index) => (
-                                            <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-4 py-3">
-                                                    <input type="text" required value={item.item} onChange={(e) => handleAddFormChange(index, 'item', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Item Name" />
+                                                    <input type="text" required value={item.item} onChange={(e) => handleAddFormChange(index, 'item', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Item Name" />
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <input type="text" value={item.description} onChange={(e) => handleAddFormChange(index, 'description', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Description" />
+                                                    <input type="text" value={item.description} onChange={(e) => handleAddFormChange(index, 'description', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Description" />
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex space-x-2">
-                                                        <select required value={item.category} onChange={(e) => handleAddFormChange(index, 'category', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                                        <select required value={item.category} onChange={(e) => handleAddFormChange(index, 'category', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer">
                                                             <option value="" disabled>Category</option>
                                                             {categories.map((cat) => (
                                                                 <option key={cat} value={cat}>{cat}</option>
                                                             ))}
                                                         </select>
-                                                        <button type="button" onClick={() => handleAddCategory(index)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+ Add</button>
+                                                        <button type="button" onClick={() => handleAddCategory(index)} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer">+ Add</button>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <input type="number" required min="0" value={item.quantity_available} onChange={(e) => handleAddFormChange(index, 'quantity_available', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Qty" />
+                                                    <input type="number" required min="0" value={item.quantity_available} onChange={(e) => handleAddFormChange(index, 'quantity_available', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Qty" />
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex space-x-2">
-                                                        <select required value={item.unit} onChange={(e) => handleAddFormChange(index, 'unit', e.target.value)} className="w-full p-2 border border-gray-300 rounded-md text-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                                        <select required value={item.unit} onChange={(e) => handleAddFormChange(index, 'unit', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer">
                                                             <option value="" disabled>Unit</option>
                                                             {units.map((u) => (
                                                                 <option key={u} value={u}>{u}</option>
                                                             ))}
                                                         </select>
-                                                        <button type="button" onClick={() => handleAddUnit(index)} className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap">+ Add</button>
+                                                        <button type="button" onClick={() => handleAddUnit(index)} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer">+ Add</button>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <button type="button" onClick={() => handleRemoveRow(index)} className="text-red-500 hover:text-red-700 transition-colors" title="Remove Item">
+                                                    <button type="button" onClick={() => handleRemoveRow(index)} className="text-red-500 hover:text-red-700 transition-colors cursor-pointer" title="Remove Item">
                                                         <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
                                                 </td>
@@ -598,7 +602,7 @@ export default function InventoryScreen() {
                                         ))}
                                         {newItems.length === 0 && (
                                             <tr>
-                                                <td colSpan="6" className="px-4 py-6 text-center text-sm text-gray-500">No items added. Click "+ Add Row" to start.</td>
+                                                <td colSpan="6" className="px-4 py-6 text-center text-sm text-slate-400 font-semibold">No items added. Click "+ Add Row" to start.</td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -606,14 +610,14 @@ export default function InventoryScreen() {
                             </div>
 
                             <div className="flex justify-start mb-4 shrink-0">
-                                <button type="button" onClick={handleAddRow} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm">
+                                <button type="button" onClick={handleAddRow} className="px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-sm shadow-sm cursor-pointer">
                                     + Add Row
                                 </button>
                             </div>
 
-                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100 shrink-0">
-                                <button type="button" onClick={handleCloseAddModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Cancel</button>
-                                <button type="submit" disabled={newItems.length === 0} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">Save Items</button>
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100 shrink-0">
+                                <button type="button" onClick={handleCloseAddModal} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">Cancel</button>
+                                <button type="submit" disabled={newItems.length === 0} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Save Items</button>
                             </div>
                         </form>
                     </div>
@@ -622,33 +626,33 @@ export default function InventoryScreen() {
 
             {/* Create PPMP Modal */}
             {isPPMPModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">PPMP Details</h3>
-                            <button onClick={() => setIsPPMPModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                            <h3 className="text-xl font-black text-slate-800">PPMP Details</h3>
+                            <button onClick={() => setIsPPMPModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <form onSubmit={handleCreatePPMP} className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
-                                <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., SMAW NC I" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Project Name</label>
+                                <input type="text" required value={ppmpForm.name} onChange={e => setPpmpForm({...ppmpForm, name: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="e.g., SMAW NC I" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <input type="text" required value={ppmpForm.department} onChange={e => setPpmpForm({...ppmpForm, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Vocational" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
+                                <input type="text" required value={ppmpForm.department} onChange={e => setPpmpForm({...ppmpForm, department: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="e.g., Vocational" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                                <input type="text" required value={ppmpForm.year} onChange={e => setPpmpForm({...ppmpForm, year: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., 2026" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Year</label>
+                                <input type="text" required value={ppmpForm.year} onChange={e => setPpmpForm({...ppmpForm, year: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="e.g., 2026" />
                             </div>
                             
-                            <div className="bg-indigo-50 text-indigo-800 p-3 rounded-md text-sm border border-indigo-100">
+                            <div className="bg-indigo-50 border border-indigo-100 text-indigo-700 p-4 rounded-xl text-sm font-medium">
                                 <strong>{selectedForPPMP.length}</strong> items will be added to this PPMP.
                             </div>
 
-                            <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100 mt-4">
-                                <button type="button" onClick={() => setIsPPMPModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Back</button>
-                                <button type="submit" disabled={isSubmittingPPMP} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50">{isSubmittingPPMP ? 'Creating...' : 'Create PPMP'}</button>
+                            <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100 mt-4">
+                                <button type="button" onClick={() => setIsPPMPModalOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">Back</button>
+                                <button type="submit" disabled={isSubmittingPPMP} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm disabled:opacity-50 cursor-pointer">{isSubmittingPPMP ? 'Creating...' : 'Create PPMP'}</button>
                             </div>
                         </form>
                     </div>
@@ -657,39 +661,39 @@ export default function InventoryScreen() {
 
             {/* Create Stock Card Modal */}
             {isStockCardModalOpen && selectedForStockCard && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">Stock Card</h3>
-                            <button onClick={() => setIsStockCardModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                            <h3 className="text-xl font-black text-slate-800">Stock Card</h3>
+                            <button onClick={() => setIsStockCardModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <div className="space-y-4 mb-6">
-                            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                            <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200/50">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Item ID</p>
-                                        <p className="font-semibold text-gray-900 font-mono">ITM-{String(selectedForStockCard.item_id).padStart(4, '0')}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Item ID</p>
+                                        <p className="font-bold text-slate-800 font-mono text-sm">ITM-{String(selectedForStockCard.item_id).padStart(4, '0')}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">In Store Quantity</p>
-                                        <p className="font-semibold text-gray-900">{selectedForStockCard.quantity_available} {selectedForStockCard.unit_name || selectedForStockCard.unit || ''}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">In Store Quantity</p>
+                                        <p className="font-bold text-slate-800 text-sm">{selectedForStockCard.quantity_available} {selectedForStockCard.unit_name || selectedForStockCard.unit || ''}</p>
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Item Name</p>
-                                        <p className="font-semibold text-gray-900">{selectedForStockCard.item}</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Item Name</p>
+                                        <p className="font-bold text-slate-800 text-sm">{selectedForStockCard.item}</p>
                                     </div>
                                     {selectedForStockCard.description && (
                                         <div className="sm:col-span-2">
-                                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Description</p>
-                                            <p className="text-gray-700">{selectedForStockCard.description}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Description</p>
+                                            <p className="text-slate-600 text-sm font-medium">{selectedForStockCard.description}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
-                        <div className="flex justify-end space-x-4 pt-4 border-t border-gray-100">
-                            <button type="button" onClick={() => setIsStockCardModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Back</button>
-                            <button type="button" onClick={handleGenerateStockCard} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">Generate Stock Card</button>
+                        <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                            <button type="button" onClick={() => setIsStockCardModalOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">Back</button>
+                            <button type="button" onClick={handleGenerateStockCard} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm cursor-pointer">Generate Stock Card</button>
                         </div>
                     </div>
                 </div>
@@ -699,55 +703,58 @@ export default function InventoryScreen() {
             <Navigation />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
-                    <h2 className="text-xl font-semibold text-gray-800">Complete Inventory</h2>
-                    <div className="flex items-center space-x-4">
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-700"></span>
+                        Complete Inventory
+                    </h2>
+                    <div className="flex items-center space-x-3">
                         {isCreatingPPMP ? (
                             <>
-                                <span className="text-sm font-medium text-gray-600 hidden sm:inline">{selectedForPPMP.length} selected</span>
-                                <button onClick={() => { setIsCreatingPPMP(false); setSelectedForPPMP([]); }} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors shadow-sm">
+                                <span className="text-sm font-bold text-slate-500 hidden sm:inline">{selectedForPPMP.length} selected</span>
+                                <button onClick={() => { setIsCreatingPPMP(false); setSelectedForPPMP([]); }} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition-colors shadow-sm cursor-pointer">
                                     Cancel
                                 </button>
-                                <button onClick={() => setIsPPMPModalOpen(true)} disabled={selectedForPPMP.length === 0} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
+                                <button onClick={() => setIsPPMPModalOpen(true)} disabled={selectedForPPMP.length === 0} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer">
                                     Next: Set Details
                                 </button>
                             </>
                         ) : isCreatingStockCard ? (
                             <>
-                                <span className="text-sm font-medium text-gray-600 hidden sm:inline">{selectedForStockCard ? '1 selected' : 'Select an item'}</span>
-                                <button onClick={() => { setIsCreatingStockCard(false); setSelectedForStockCard(null); }} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-300 transition-colors shadow-sm">
+                                <span className="text-sm font-bold text-slate-500 hidden sm:inline">{selectedForStockCard ? '1 selected' : 'Select an item'}</span>
+                                <button onClick={() => { setIsCreatingStockCard(false); setSelectedForStockCard(null); }} className="bg-slate-200 text-slate-800 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition-colors shadow-sm cursor-pointer">
                                     Cancel
                                 </button>
-                                <button onClick={() => setIsStockCardModalOpen(true)} disabled={!selectedForStockCard} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50">
+                                <button onClick={() => setIsStockCardModalOpen(true)} disabled={!selectedForStockCard} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer">
                                     Next: View Details
                                 </button>
                             </>
                         ) : (
                             <>
-                                <button onClick={() => setIsCreatingStockCard(true)} className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap">Create Stock Card</button>
-                                <button onClick={() => setIsCreatingPPMP(true)} className="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-50 transition-colors shadow-sm">Create PPMP</button>
-                                <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">+ Add New Item</button>
+                                <button onClick={() => setIsCreatingStockCard(true)} className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap cursor-pointer">Create Stock Card</button>
+                                <button onClick={() => setIsCreatingPPMP(true)} className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap cursor-pointer">Create PPMP</button>
+                                <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap cursor-pointer">+ Add New Item</button>
                             </>
                         )}
                     </div>
                 </header>
 
-            <main className="flex-1 flex flex-col overflow-hidden bg-gray-50 p-6 lg:p-8 min-h-0">
+                <main className="flex-1 flex flex-col overflow-hidden p-6 lg:p-8 min-h-0">
                     {/* Filters and Search Bar */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
+                    <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/60 shadow-sm mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
                         <div className="w-full sm:w-1/3">
                             <input 
                                 type="text" 
                                 placeholder="Search by item name or SKU..." 
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <div className="flex gap-4 w-full sm:w-auto">
                             <select 
-                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                className="px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
                             >
@@ -757,7 +764,7 @@ export default function InventoryScreen() {
                                 ))}
                             </select>
                             <select 
-                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                className="px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
@@ -770,47 +777,47 @@ export default function InventoryScreen() {
                     </div>
 
                     {/* Inventory Table Section */}
-                <div className="bg-white shadow-sm rounded-xl border border-gray-100 flex flex-col flex-1 min-h-0 overflow-hidden">
-                    <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-                        <table className="min-w-full divide-y divide-gray-200 relative">
-                            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                    <div className="bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 flex flex-col flex-1 min-h-0 overflow-hidden">
+                        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+                            <table className="min-w-full divide-y divide-slate-100 relative">
+                                <thead className="bg-slate-50/70 sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         {isCreatingPPMP && (
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 w-10">
+                                            <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 w-10">
                                                 <input
                                                     type="checkbox"
-                                                checked={filteredInventory.filter(i => i.quantity_available > 0).length > 0 && filteredInventory.filter(i => i.quantity_available > 0).every(item => selectedForPPMP.some(p => p.item_id === item.item_id))}
+                                                    checked={filteredInventory.filter(i => i.quantity_available > 0).length > 0 && filteredInventory.filter(i => i.quantity_available > 0).every(item => selectedForPPMP.some(p => p.item_id === item.item_id))}
                                                     onChange={handleToggleAllPPMPItems}
-                                                disabled={filteredInventory.filter(i => i.quantity_available > 0).length === 0}
-                                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    disabled={filteredInventory.filter(i => i.quantity_available > 0).length === 0}
+                                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-200 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                     title="Select All"
                                                 />
                                             </th>
                                         )}
                                         {isCreatingStockCard && (
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 w-10">
+                                            <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-slate-500 w-10">
                                                 Select
                                             </th>
                                         )}
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item ID & SKU</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item Name & Description</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quantity</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                        <th scope="col" className="px-6 py-3.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-transparent divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">
                                                 Loading inventory...
                                             </td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-red-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-12 text-center text-rose-500 font-semibold text-sm">
                                                 Error loading inventory: {error}
                                             </td>
                                         </tr>
@@ -820,55 +827,56 @@ export default function InventoryScreen() {
                                         else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
                                         
                                         return (
-                                        <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
-                                            {isCreatingPPMP && (
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedForPPMP.some(p => p.item_id === item.item_id)}
-                                                        onChange={() => handleTogglePPMPItem(item)}
-                                                        disabled={item.quantity_available <= 0}
-                                                        title={item.quantity_available <= 0 ? "Out of stock" : ""}
-                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    />
+                                            <tr key={item.item_id} className="hover:bg-slate-50/50 transition-colors">
+                                                {isCreatingPPMP && (
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedForPPMP.some(p => p.item_id === item.item_id)}
+                                                            onChange={() => handleTogglePPMPItem(item)}
+                                                            disabled={item.quantity_available <= 0}
+                                                            title={item.quantity_available <= 0 ? "Out of stock" : ""}
+                                                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-200 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        />
+                                                    </td>
+                                                )}
+                                                {isCreatingStockCard && (
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <input
+                                                            type="radio"
+                                                            name="stockCardSelection"
+                                                            checked={selectedForStockCard?.item_id === item.item_id}
+                                                            onChange={() => setSelectedForStockCard(item)}
+                                                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-200 cursor-pointer"
+                                                        />
+                                                    </td>
+                                                )}
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">
+                                                    ITM-{String(item.item_id).padStart(4, '0')}
                                                 </td>
-                                            )}
-                                            {isCreatingStockCard && (
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <input
-                                                        type="radio"
-                                                        name="stockCardSelection"
-                                                        checked={selectedForStockCard?.item_id === item.item_id}
-                                                        onChange={() => setSelectedForStockCard(item)}
-                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer"
-                                                    />
+                                                    <div className="text-sm font-bold text-slate-800">{item.item}</div>
+                                                    <div className="text-xs font-semibold text-slate-400 mt-0.5">{item.description}</div>
                                                 </td>
-                                            )}
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                                                ITM-{String(item.item_id).padStart(4, '0')}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{item.item}</div>
-                                                <div className="text-sm text-gray-500">{item.description}</div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category_name || ''}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                                                {item.quantity_available}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {item.unit_name || ''}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
-                                                <span onClick={() => handleDeleteItem(item.item_id)} className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
-                                            </td>
-                                        </tr>
-                                    )}) : (
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">{item.category_name || ''}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-bold">
+                                                    {item.quantity_available}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">
+                                                    {item.unit_name || ''}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+                                                    <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
+                                                    <span onClick={() => handleDeleteItem(item.item_id)} className="text-rose-600 hover:text-rose-900 cursor-pointer">Delete</span>
+                                                </td>
+                                            </tr>
+                                        )
+                                    }) : (
                                         <tr>
-                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan={isCreatingPPMP || isCreatingStockCard ? "8" : "7"} className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">
                                                 No items found matching your filters.
                                             </td>
                                         </tr>

@@ -267,25 +267,32 @@ export default function DashboardScreen() {
     }).length;
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles for visual depth */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/40 via-purple-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-blue-200/30 via-indigo-200/20 to-transparent blur-3xl pointer-events-none" />
+
             {/* Edit Item Modal */}
             {isEditModalOpen && editingItem && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300">
-                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-2xl font-bold text-gray-800">Edit Item</h3>
-                            <button onClick={handleCloseEditModal} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300">
+                    <div className="bg-white/95 border border-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-[0_20px_50px_-15px_rgba(99,102,241,0.15)] w-full max-w-md transform transition-all relative">
+                        <button onClick={handleCloseEditModal} className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200 cursor-pointer">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        <div className="mb-6">
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">Edit Inventory Item</h3>
+                            <p className="text-slate-400 text-xs font-semibold mt-1">Modify category, stock quantity, and units for the selected item.</p>
                         </div>
-                        <form onSubmit={handleUpdateItem} className="space-y-6">
+                        <form onSubmit={handleUpdateItem} className="space-y-4">
                             <div>
-                                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                                <label htmlFor="category" className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Category</label>
                                 <div className="flex space-x-2">
                                     <select
                                         id="category"
                                         name="category"
                                         value={editingItem.category || editingItem.category_name || ''}
                                         onChange={handleEditFormChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 text-sm font-semibold text-slate-800 cursor-pointer"
                                     >
                                         {categories.map((cat) => (
                                             <option key={cat} value={cat}>{cat}</option>
@@ -294,32 +301,32 @@ export default function DashboardScreen() {
                                     <button
                                         type="button"
                                         onClick={handleAddCategory}
-                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                        className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100/70 text-indigo-700 border border-indigo-200 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer"
                                     >
                                         + Add
                                     </button>
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+                                <label htmlFor="quantity" className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Stock Quantity Available</label>
                                 <input
                                     type="number"
                                     id="quantity"
                                     name="quantity_available"
                                     value={editingItem.quantity_available || ''}
                                     onChange={handleEditFormChange}
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 text-sm font-semibold text-slate-800"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                <label htmlFor="unit" className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Measuring Unit</label>
                                 <div className="flex space-x-2">
                                     <select
                                         id="unit"
                                         name="unit"
                                         value={editingItem.unit || editingItem.unit_name || ''}
                                         onChange={handleEditFormChange}
-                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                        className="w-full px-4 py-2 bg-white border border-slate-200/60 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 text-sm font-semibold text-slate-800 cursor-pointer"
                                     >
                                         <option value="" disabled>Select a unit</option>
                                         {units.map((u) => (
@@ -329,15 +336,15 @@ export default function DashboardScreen() {
                                     <button
                                         type="button"
                                         onClick={handleAddUnit}
-                                        className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
+                                        className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100/70 text-indigo-700 border border-indigo-200 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer"
                                     >
                                         + Add
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex justify-end space-x-4 pt-4">
-                                <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">Save Changes</button>
+                            <div className="flex justify-end space-x-3 pt-4 mt-6 border-t border-slate-100">
+                                <button type="button" onClick={handleCloseEditModal} className="px-4 py-2 bg-slate-100 hover:bg-slate-200/80 text-slate-500 rounded-xl font-bold text-xs transition cursor-pointer">Cancel</button>
+                                <button type="submit" className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-800 hover:from-indigo-700 hover:to-indigo-900 text-white rounded-xl font-bold text-xs transition shadow-md shadow-indigo-600/10 cursor-pointer">Save Changes</button>
                             </div>
                         </form>
                     </div>
@@ -348,34 +355,37 @@ export default function DashboardScreen() {
             <Navigation />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
                 {/* Top Header */}
-                <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
-                    <h2 className="text-xl font-semibold text-gray-800">Dashboard Overview</h2>
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-indigo-500 to-purple-600"></span>
+                        Admin Dashboard Overview
+                    </h2>
                 </header>
 
                 {/* Scrollable Content Area */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 lg:p-8">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8">
                     
                     {/* Metric Cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:shadow-md hover:border-indigo-300/40 transition-all duration-300 flex items-center group">
+                            <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 mr-4 transition-transform group-hover:scale-105 duration-300">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Total Items</p>
-                                <p className="text-2xl font-bold text-gray-900">{totalItems}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Total Items</p>
+                                <p className="text-3xl font-black text-slate-800">{totalItems}</p>
                             </div>
                         </div>
                         
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center">
-                            <div className="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/60 p-6 shadow-sm hover:shadow-md hover:border-indigo-300/40 transition-all duration-300 flex items-center group">
+                            <div className="p-4 rounded-xl bg-yellow-50 border border-yellow-100 text-yellow-600 mr-4 transition-transform group-hover:scale-105 duration-300">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                             </div>
                             <div>
-                                <p className="text-sm font-medium text-gray-500">Low Stock Alerts</p>
-                                <p className="text-2xl font-bold text-gray-900">{lowStockAlerts}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">Low Stock Alerts</p>
+                                <p className="text-3xl font-black text-slate-800">{lowStockAlerts}</p>
                             </div>
                         </div>
                     </div>
@@ -383,49 +393,52 @@ export default function DashboardScreen() {
                     {/* Main content grid for table and chart */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Inventory Table Section */}
-                        <div className="lg:col-span-2 bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
-                            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-                                <h3 className="text-lg font-medium text-gray-900">Recent Inventory Items</h3>
+                        <div className="lg:col-span-2 bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 overflow-hidden flex flex-col">
+                            <div className="px-6 py-5 border-b border-slate-100 bg-white/40 flex justify-between items-center">
+                                <h3 className="text-md font-bold text-slate-800 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                    Recent Inventory Items
+                                </h3>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                <table className="min-w-full divide-y divide-slate-100">
+                                    <thead className="bg-slate-50/50">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name & SKU</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                            <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Item Name & SKU</th>
+                                            <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Category</th>
+                                            <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Stock</th>
+                                            <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                            <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-slate-100 bg-white/40">
                                         {inventory.slice(0, 5).map((item) => {
                                             let derivedStatus = 'In Stock';
                                             if (item.quantity_available <= 0) derivedStatus = 'Out of Stock';
                                             else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
                                             
                                             return (
-                                            <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={item.item_id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{item.item}</div>
-                                                    <div className="text-sm text-gray-500 font-mono">
+                                                    <div className="text-sm font-bold text-slate-800">{item.item}</div>
+                                                    <div className="text-xs text-slate-400 font-mono mt-0.5">
                                                         ITM-{String(item.item_id).padStart(4, '0')}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-slate-500">
                                                     {item.category_name || item.category || ''}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                                <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-800">
                                                     {item.quantity_available}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>
+                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-xl border ${getStatusStyle(derivedStatus)}`}>
                                                         {derivedStatus}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-bold">
                                                     <span onClick={() => handleOpenEditModal(item)} className="text-indigo-600 hover:text-indigo-900 mr-4 cursor-pointer">Edit</span>
-                                                <span onClick={() => handleDeleteItem(item.item_id)} className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
+                                                    <span onClick={() => handleDeleteItem(item.item_id)} className="text-red-600 hover:text-red-900 cursor-pointer">Delete</span>
                                                 </td>
                                             </tr>
                                         )})}
@@ -435,8 +448,11 @@ export default function DashboardScreen() {
                         </div>
 
                         {/* Chart Section */}
-                        <div className="bg-white shadow-sm rounded-xl border border-gray-100 p-6 flex flex-col">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4">Items by Category</h3>
+                        <div className="bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 p-6 flex flex-col">
+                            <h3 className="text-md font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                                Items by Category
+                            </h3>
                             <div className="relative h-56 flex justify-center w-full">
                                 <Pie options={pieChartOptions} data={pieChartData} />
                             </div>

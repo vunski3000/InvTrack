@@ -519,53 +519,53 @@ export default function PurchaseRequestScreen() {
                                 </div>
 
                                 {/* Items Table Read-Only */}
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
-                                <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg mb-6 min-h-0">
-                                    <table className="min-w-full divide-y divide-gray-200 relative">
-                                        <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                                <h4 className="text-base font-bold text-slate-800 mb-3 shrink-0">Requested Items</h4>
+                                <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-100 rounded-2xl mb-6 min-h-0 bg-white/40">
+                                    <table className="min-w-full divide-y divide-slate-100 relative">
+                                        <thead className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
                                             <tr>
-                                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Item Number</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/2">Item Description</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Quantity</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/6">Unit</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
+                                        <tbody className="bg-transparent divide-y divide-slate-100">
                                             {selectedRequest.items.map((item, index) => (
-                                                <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
+                                                <tr key={index} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-slate-800 font-bold">{item.itemNumber}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-600 font-medium">{item.itemDescription}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-800 font-bold">{item.quantity}</td>
+                                                    <td className="px-4 py-3 text-sm font-semibold text-slate-500">{item.unit}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
 
-                                <div className="flex justify-between items-center shrink-0 pt-4 border-t border-gray-200 mt-auto">
-                                    <div className="flex gap-3">
+                                <div className="flex flex-col sm:flex-row justify-between gap-4 shrink-0 pt-4 border-t border-slate-100 mt-auto">
+                                    <div className="flex flex-wrap gap-2">
                                         {selectedRequest.status === 'Pending' && (
                                             <>
-                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Approved')} className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium shadow-sm">
+                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Approved')} className="px-5 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-semibold text-sm shadow-sm cursor-pointer">
                                                     Approve
                                                 </button>
-                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Rejected')} className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium shadow-sm">
+                                                <button onClick={() => handleRequestAction(selectedRequest.purchase_request_id, 'Rejected')} className="px-5 py-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition font-semibold text-sm shadow-sm cursor-pointer">
                                                     Reject
                                                 </button>
                                             </>
                                         )}
-                                        <button onClick={handleEditRequest} className="px-6 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-md hover:bg-indigo-50 transition font-medium shadow-sm">
+                                        <button onClick={handleEditRequest} className="px-5 py-2 bg-white text-indigo-600 border border-indigo-200 rounded-xl hover:bg-indigo-50 transition font-semibold text-sm shadow-sm cursor-pointer">
                                             Edit
                                         </button>
-                                        <button onClick={handleGeneratePR} className="px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm whitespace-nowrap">
+                                        <button onClick={handleGeneratePR} className="px-5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-semibold text-sm shadow-sm whitespace-nowrap cursor-pointer">
                                             Generate Purchase Request
                                         </button>
-                                        <button onClick={handleDeleteRequest} className="px-6 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
+                                        <button onClick={handleDeleteRequest} className="px-5 py-2 bg-white text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition font-semibold text-sm shadow-sm cursor-pointer">
                                             Delete
                                         </button>
                                     </div>
-                                    <button onClick={closeModal} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">
+                                    <button onClick={closeModal} className="px-6 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm shadow-sm cursor-pointer">
                                         Close
                                     </button>
                                 </div>
@@ -578,201 +578,201 @@ export default function PurchaseRequestScreen() {
             {/* Top Navigation */}
             <Navigation />
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex overflow-hidden z-10">
                 {/* Sidebar Tab */}
-                <div className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col gap-2 shrink-0 overflow-y-auto">
+                <div className="w-64 bg-white/40 backdrop-blur-md border-r border-slate-200/60 p-4 flex flex-col gap-2 shrink-0 overflow-y-auto">
                     <button
                         type="button"
                         onClick={() => setActiveTab('create')}
-                        className={`w-full text-left px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'create' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'create' ? 'bg-indigo-50 border border-indigo-100/80 text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                     >
                         Create Purchase Request
                     </button>
                     <button
                         type="button"
                         onClick={() => setActiveTab('list')}
-                        className={`w-full text-left px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'list' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === 'list' ? 'bg-indigo-50 border border-indigo-100/80 text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
                     >
                         Purchase Requests
                     </button>
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 flex flex-col p-4 sm:p-6 overflow-hidden">
+                <div className="flex-1 flex flex-col p-6 lg:p-8 overflow-hidden min-h-0">
                     {activeTab === 'create' ? (
-                        <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-5xl mx-auto border border-gray-100 flex flex-col flex-1 min-h-0 my-0">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center shrink-0">Create Purchase Request</h2>
+                        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-sm border border-slate-200/60 w-full max-w-5xl mx-auto flex flex-col flex-1 min-h-0 my-0">
+                            <h2 className="text-xl font-black text-slate-800 mb-6 text-center shrink-0">Create Purchase Request</h2>
                             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 space-y-5">
                                 
                                 {/* Requester Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-2 shrink-0">
-                            <div>
-                                <label htmlFor="requesterName" className="block text-sm font-medium text-gray-700 mb-1">Requester Name</label>
-                                <input
-                                    type="text"
-                                    id="requesterName"
-                                    value={requesterName}
-                                    onChange={(e) => setRequesterName(e.target.value)}
-                                    required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="Enter your full name"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <input
-                                    type="text"
-                                    id="department"
-                                    value={department}
-                                    onChange={(e) => setDepartment(e.target.value)}
-                                    required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                                    placeholder="e.g., HR, Finance"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="requestDate" className="block text-sm font-medium text-gray-700 mb-1">Date of Request</label>
-                                <input
-                                    type="date"
-                                    id="requestDate"
-                                    value={requestDate}
-                                    onChange={(e) => setRequestDate(e.target.value)}
-                                    required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50"
-                                    readOnly
-                                />
-                            </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2 shrink-0">
+                                    <div>
+                                        <label htmlFor="requesterName" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Requester Name</label>
+                                        <input
+                                            type="text"
+                                            id="requesterName"
+                                            value={requesterName}
+                                            onChange={(e) => setRequesterName(e.target.value)}
+                                            required
+                                            className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                            placeholder="Enter your full name"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="department" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
+                                        <input
+                                            type="text"
+                                            id="department"
+                                            value={department}
+                                            onChange={(e) => setDepartment(e.target.value)}
+                                            required
+                                            className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                            placeholder="e.g., HR, Finance"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="requestDate" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Date of Request</label>
+                                        <input
+                                            type="date"
+                                            id="requestDate"
+                                            value={requestDate}
+                                            onChange={(e) => setRequestDate(e.target.value)}
+                                            required
+                                            className="w-full px-4 py-2 bg-slate-100 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-400 shadow-sm font-medium cursor-not-allowed"
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
+                            
+                                {/* Dynamic Items Table */}
+                                <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-100 rounded-2xl min-h-0 mt-0 bg-white/40 mb-4">
+                                    <table className="min-w-full divide-y divide-slate-100 relative">
+                                        <thead className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
+                                            <tr>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Item Number</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-2/5">Item Description</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Quantity</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/6">Unit</th>
+                                                <th scope="col" className="px-4 py-3 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-transparent divide-y divide-slate-100">
+                                            {items.map((item, index) => (
+                                                <tr key={index} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <select
+                                                            value={item.itemNumber}
+                                                            onChange={(e) => handleItemSelect(index, e.target.value)}
+                                                            required
+                                                            className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
+                                                        >
+                                                            <option value="" disabled>Select Item</option>
+                                                            {inventoryList.map((invItem) => {
+                                                                const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                                                return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
+                                                            })}
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="text"
+                                                            value={item.itemDescription}
+                                                            onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
+                                                            required
+                                                            className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                                            placeholder="Brief description"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="number"
+                                                            value={item.quantity}
+                                                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                            required
+                                                            min="1"
+                                                            className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                                            placeholder="Qty"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <input
+                                                            type="text"
+                                                            value={item.unit}
+                                                            onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                                            required
+                                                            className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                                            placeholder="e.g. pcs, boxes"
+                                                        />
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        {items.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleRemoveItem(index)}
+                                                                className="text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+                                                                title="Remove Item"
+                                                            >
+                                                                <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            
+                                {/* Actions */}
+                                <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddItem}
+                                        className="w-full sm:w-auto px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-semibold text-sm shadow-sm cursor-pointer"
+                                    >
+                                        + Add Row
+                                    </button>
+                                    <button type="submit" className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm cursor-pointer">
+                                        Submit Purchase Request
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    
-                        {/* Dynamic Items Table */}
-                        <div className="overflow-x-auto overflow-y-auto flex-1 border border-gray-200 rounded-lg min-h-0 mt-0">
-                            <table className="min-w-full divide-y divide-gray-200 relative">
-                                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                                    <tr>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
-                                        <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {items.map((item, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3">
-                                            <select
-                                                    value={item.itemNumber}
-                                                onChange={(e) => handleItemSelect(index, e.target.value)}
-                                                    required
-                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                            >
-                                                <option value="" disabled>Select Item</option>
-                                                {inventoryList.map((invItem) => {
-                                                    const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
-                                                    return <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>;
-                                                })}
-                                            </select>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <input
-                                                    type="text"
-                                                    value={item.itemDescription}
-                                                    onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
-                                                    required
-                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                    placeholder="Brief description"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <input
-                                                    type="number"
-                                                    value={item.quantity}
-                                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                    required
-                                                    min="1"
-                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                    placeholder="Qty"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <input
-                                                    type="text"
-                                                    value={item.unit}
-                                                    onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                                                    required
-                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                    placeholder="e.g. pcs, boxes"
-                                                />
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                {items.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleRemoveItem(index)}
-                                                        className="text-red-500 hover:text-red-700 transition-colors"
-                                                        title="Remove Item"
-                                                    >
-                                                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between shrink-0">
-                            <button
-                                type="button"
-                                onClick={handleAddItem}
-                                className="w-full sm:w-auto px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm"
-                            >
-                                + Add Row
-                            </button>
-                            <button type="submit" className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
-                                Submit Purchase Request
-                            </button>
-                        </div>
-                    </form>
-                </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-md w-full max-w-5xl mx-auto border border-gray-100 flex flex-col flex-1 min-h-0 my-0 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 shrink-0">
-                                <h2 className="text-2xl font-bold text-gray-800 text-center">Purchase Requests</h2>
+                        <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm border border-slate-200/60 w-full max-w-5xl mx-auto flex flex-col flex-1 min-h-0 my-0 overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 shrink-0">
+                                <h2 className="text-xl font-black text-slate-800 text-center">Purchase Requests</h2>
                             </div>
                             <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-                                <table className="min-w-full divide-y divide-gray-200 relative">
-                                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                                <table className="min-w-full divide-y divide-slate-100 relative">
+                                    <thead className="bg-slate-50/70 sticky top-0 z-10 shadow-sm">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID & Requester</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                            <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">ID & Requester</th>
+                                            <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Department</th>
+                                            <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date</th>
+                                            <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                            <th scope="col" className="px-6 py-3.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="bg-transparent divide-y divide-slate-100">
                                         {purchaseRequests.map((req) => (
-                                            <tr key={req.purchase_request_id} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={req.purchase_request_id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{req.purchase_request_id}</div>
-                                                    <div className="text-sm text-gray-500">{req.requesterName}</div>
+                                                    <div className="text-sm font-bold text-slate-800">{req.purchase_request_id}</div>
+                                                    <div className="text-xs font-semibold text-slate-400 mt-1">{req.requesterName}</div>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.department}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.requestDate}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">{req.department}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">{req.requestDate}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(req.status)}`}>
+                                                    <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${getStatusStyle(req.status)}`}>
                                                         {req.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button type="button" onClick={() => handleViewDetails(req)} className="text-indigo-600 hover:text-indigo-900 font-medium mr-4">View Details</button>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+                                                    <button type="button" onClick={() => handleViewDetails(req)} className="text-indigo-600 hover:text-indigo-900 font-bold mr-4 cursor-pointer">View Details</button>
                                                     {req.status === 'Pending' && (
                                                         <>
-                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Approved')} className="text-green-600 hover:text-green-900 font-medium mr-4">Approve</button>
-                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Rejected')} className="text-red-600 hover:text-red-900 font-medium">Reject</button>
+                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Approved')} className="text-emerald-600 hover:text-emerald-950 font-bold mr-4 cursor-pointer">Approve</button>
+                                                            <button type="button" onClick={() => handleRequestAction(req.purchase_request_id, 'Rejected')} className="text-rose-600 hover:text-rose-950 font-bold cursor-pointer">Reject</button>
                                                         </>
                                                     )}
                                                 </td>
@@ -780,7 +780,7 @@ export default function PurchaseRequestScreen() {
                                         ))}
                                         {purchaseRequests.length === 0 && (
                                             <tr>
-                                                <td colSpan="5" className="px-6 py-10 text-center text-gray-500 font-medium">
+                                                <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">
                                                     No purchase requests found.
                                                 </td>
                                             </tr>

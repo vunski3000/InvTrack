@@ -142,22 +142,26 @@ export default function PersonnelScreen() {
     }, [personnel, searchQuery]);
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/40 via-purple-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-blue-200/30 via-indigo-200/20 to-transparent blur-3xl pointer-events-none" />
+
             <Navigation />
 
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
-                    <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all">
                         <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Edit Personnel' : 'Add New Personnel'}</h3>
-                            <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                            <h3 className="text-xl font-black text-slate-800">{isEditMode ? 'Edit Personnel' : 'Add New Personnel'}</h3>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none cursor-pointer">&times;</button>
                         </div>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Personnel ID</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Personnel ID</label>
                                 <input 
                                     required 
-                                disabled={isEditMode}
+                                    disabled={isEditMode}
                                     type="text" 
                                     value={formData.personnel_id} 
                                     onChange={e => {
@@ -168,17 +172,17 @@ export default function PersonnelScreen() {
                                             setFormData({...formData, personnel_id: formatted});
                                         }
                                     }} 
-                                className={`w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 ${isEditMode ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
+                                    className={`w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium ${isEditMode ? 'bg-slate-100 cursor-not-allowed text-slate-400' : ''}`}
                                     placeholder="e.g., 2026-0501" 
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Juan Dela Cruz" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
+                                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="e.g., Juan Dela Cruz" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
+                                <select required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer">
                                     <option value="" disabled>Select a department</option>
                                     {departmentsList.map((dept, index) => (
                                         <option key={index} value={dept}>{dept}</option>
@@ -186,75 +190,85 @@ export default function PersonnelScreen() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                                <input required type="text" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Staff" />
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Designation</label>
+                                <input required type="text" value={formData.designation} onChange={e => setFormData({...formData, designation: e.target.value})} className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="e.g., Staff" />
                             </div>
-                            <div className="flex justify-end space-x-3 pt-4 mt-6 border-t border-gray-100">
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition font-medium shadow-sm">Cancel</button>
-                            <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50">{isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save')}</button>
+                            <div className="flex justify-end space-x-3 pt-4 mt-6 border-t border-slate-100">
+                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">Cancel</button>
+                                <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm disabled:opacity-50 cursor-pointer">{isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Save')}</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
-                    <h2 className="text-2xl font-bold text-gray-800">Personnel Management</h2>
-                <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+            {/* Main Content Container */}
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-700"></span>
+                        Personnel Management
+                    </h2>
+                    <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm cursor-pointer">
                         + Add Personnel
                     </button>
-                </div>
+                </header>
 
-                <div className="w-full max-w-6xl mb-4">
-                    <input 
-                        type="text" 
-                        placeholder="Search by Name or ID..." 
-                        className="w-full sm:w-1/3 p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
-
-                <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden flex flex-col min-h-0">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Personnel ID</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designation</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-10 text-center text-gray-500">Loading personnel...</td>
-                                    </tr>
-                                ) : filteredPersonnel.length > 0 ? (
-                                    filteredPersonnel.map((person) => (
-                                        <tr key={person.personnel_id || person.name} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{formatPersonnelId(person.personnel_id)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{person.name}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{person.department || person.dept || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{person.designation || '-'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button onClick={() => handleOpenEditModal(person)} className="text-indigo-600 hover:text-indigo-900 transition-colors mr-4">Edit</button>
-                                                <button onClick={() => handleDelete(person.personnel_id)} className="text-red-600 hover:text-red-900 transition-colors">Remove</button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-10 text-center text-gray-500 font-medium">No personnel found.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                <main className="flex-1 flex flex-col overflow-hidden p-6 lg:p-8 min-h-0">
+                    {/* Filters and Search Bar */}
+                    <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/60 shadow-sm mb-6 flex justify-between items-center shrink-0">
+                        <div className="w-full sm:w-1/3">
+                            <input 
+                                type="text" 
+                                placeholder="Search by Name or ID..." 
+                                className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
-                </div>
+
+                    {/* Personnel Table Section */}
+                    <div className="bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 flex flex-col flex-1 min-h-0 overflow-hidden">
+                        <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
+                            <table className="min-w-full divide-y divide-slate-100 relative">
+                                <thead className="bg-slate-50/70 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Personnel ID</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Name</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Department</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Designation</th>
+                                        <th scope="col" className="px-6 py-3.5 text-right text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-transparent divide-y divide-slate-100">
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">Loading personnel...</td>
+                                        </tr>
+                                    ) : filteredPersonnel.length > 0 ? (
+                                        filteredPersonnel.map((person) => (
+                                            <tr key={person.personnel_id || person.name} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{formatPersonnelId(person.personnel_id)}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800">{person.name}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">{person.department || person.dept || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-500">{person.designation || '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+                                                    <button onClick={() => handleOpenEditModal(person)} className="text-indigo-600 hover:text-indigo-900 transition-colors mr-4 cursor-pointer">Edit</button>
+                                                    <button onClick={() => handleDelete(person.personnel_id)} className="text-rose-600 hover:text-rose-900 transition-colors cursor-pointer">Remove</button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">No personnel found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
     );
