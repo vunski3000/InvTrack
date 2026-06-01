@@ -34,46 +34,50 @@ export default function SysadminUserManagementScreen() {
             }
 
             const data = await response.json();
-            setUsers(data?.users.map(u => ({
+            const mappedUsers = data?.users.map(u => ({
                 id: u.id,
                 email: u.email,
                 role: u.user_metadata?.role || 'staff',
                 created_at: u.created_at
-            })) || []);
+            })) || [];
+            
+            // Filter out system administrator accounts to prevent exposure, breach, or accidental tampering
+            const filteredUsers = mappedUsers.filter(u => u.role !== 'sysadmin');
+            setUsers(filteredUsers);
         } catch (error) {
             console.error("Error fetching users:", error);
-            alert("Failed to fetch registered users: " + error.message);
+            window.showAlert("Failed to fetch registered users: " + error.message, "Error");
         } finally {
             setLoading(false);
         }
     };
 
     const handleRoleChange = async (userId, newRole) => {
-        if (!window.confirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`)) return;
-        
-        // Optimistic UI Update
-        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        window.showConfirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`, 'Change Role', async () => {
+            // Optimistic UI Update
+            setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
 
-        try {
-            const response = await fetch(`${PROXY_URL}/api/users/update-role`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ userId, newRole })
-            });
+            try {
+                const response = await fetch(`${PROXY_URL}/api/users/update-role`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userId, newRole })
+                });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || "Failed to update role");
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to update role");
+                }
+                
+                console.log(`Role for user ${userId} updated to ${newRole}`);
+            } catch (error) {
+                console.error("Error updating role:", error);
+                window.showAlert("Failed to update role: " + error.message, "Error");
+                fetchUsers(); // Revert changes on failure
             }
-            
-            console.log(`Role for user ${userId} updated to ${newRole}`);
-        } catch (error) {
-            console.error("Error updating role:", error);
-            alert("Failed to update role: " + error.message);
-            fetchUsers(); // Revert changes on failure
-        }
+        });
     };
 
     const handleResetPasswordSubmit = async (e) => {
@@ -122,30 +126,30 @@ export default function SysadminUserManagementScreen() {
     };
 
     const handleDeleteUser = async (user) => {
-        if (!window.confirm(`Are you sure you want to permanently delete user ${user.email}?`)) return;
-        
-        try {
-            const response = await fetch(`${PROXY_URL}/api/users/delete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    userId: user.id
-                })
-            });
+        window.showConfirm(`Are you sure you want to permanently delete user ${user.email}?`, 'Delete User', async () => {
+            try {
+                const response = await fetch(`${PROXY_URL}/api/users/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: user.id
+                    })
+                });
 
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || "Failed to delete user");
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to delete user");
+                }
+                
+                setUsers(users.filter(u => u.id !== user.id));
+                window.showAlert(`User ${user.email} deleted successfully.`, "Success");
+            } catch (error) {
+                console.error("Error deleting user:", error);
+                window.showAlert("Failed to delete user: " + error.message, "Error");
             }
-            
-            setUsers(users.filter(u => u.id !== user.id));
-            alert(`User ${user.email} deleted successfully.`);
-        } catch (error) {
-            console.error("Error deleting user:", error);
-            alert("Failed to delete user: " + error.message);
-        }
+        });
     };
 
     const handleLogout = async () => {
