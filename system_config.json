@@ -1,0 +1,7 @@
+{
+  "lowStockThreshold": 15,
+  "doubleApprovalThreshold": 5000,
+  "maintenanceMode": false,
+  "sessionTimeoutMinutes": 30,
+  "allowSignup": true
+}
