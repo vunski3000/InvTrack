@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navigation from './Navigation';
-import { supabase } from '../../supabaseClient';
+import Navigation from './admin/Navigation';
+import { supabase } from '../supabaseClient';
 
 export default function NewItemScreen() {
     const navigate = useNavigate();

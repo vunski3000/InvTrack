@@ -46,54 +46,88 @@ export default function SysadminLoginScreen() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 relative">
-            
+        <div className="min-h-screen bg-gradient-to-tr from-slate-50 via-pink-50/20 to-indigo-50/40 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans select-none">
+            {/* Animated Pastel Glowing Orbs in the background */}
+            <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-pink-200/40 rounded-full blur-[90px] animate-pulse" style={{ animationDuration: '8s' }}></div>
+            <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-indigo-200/30 rounded-full blur-[110px] animate-pulse" style={{ animationDuration: '12s' }}></div>
+
+            {/* Subtle Tech Grid overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#db277705_1px,transparent_1px),linear-gradient(to_bottom,#db277705_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+
             {/* Back Button */}
             <button 
                 onClick={() => navigate('/')} 
-                className="absolute top-6 left-6 flex items-center text-gray-400 hover:text-white transition-colors font-medium"
+                className="absolute top-6 left-6 flex items-center text-slate-500 hover:text-pink-600 transition-colors font-semibold text-sm z-20 group"
             >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                <svg className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
                 Back to Home
             </button>
 
-            <div className="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden p-8 sm:p-12">
+            {/* Login Card */}
+            <div className="w-full max-w-md bg-white/75 border border-white/80 backdrop-blur-xl p-8 sm:p-10 rounded-3xl shadow-[0_20px_50px_-15px_rgba(219,39,119,0.12)] relative z-10 transition-all duration-300 hover:shadow-[0_25px_60px_-12px_rgba(99,102,241,0.18)]">
                 <div className="mb-8 text-center">
-                    <h1 className="text-gray-900 text-3xl font-bold tracking-tight">InvTrack SysAdmin</h1>
-                    <p className="text-gray-500 mt-2">Authorized Personnel Only</p>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-pink-50 border border-pink-100 rounded-full text-[10px] font-bold tracking-wider uppercase text-pink-600 mb-4 shadow-sm">
+                        SysAdmin Security Console
+                    </div>
+                    <h1 className="text-3xl font-black tracking-tight select-none">
+                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-700 via-indigo-700 to-pink-900">
+                            SysAdmin Sign In
+                        </span>
+                    </h1>
+                    <p className="text-slate-500 text-sm mt-2">Authorized Personnel Only</p>
                 </div>
                 
                 <form className="space-y-5" onSubmit={handleLogin}>
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700">SysAdmin ID / Email</label>
-                        <input
-                            id="username"
-                            type="text"
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-800 focus:border-gray-800 sm:text-sm"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                        />
+                        <label htmlFor="username" className="block text-xs font-bold text-slate-700 uppercase tracking-wide">SysAdmin ID / Email</label>
+                        <div className="mt-1.5">
+                            <input
+                                id="username"
+                                type="text"
+                                required
+                                className="block w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm transition duration-150 ease-in-out text-slate-800"
+                                placeholder="e.g. sysadmin"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                        <input
-                            id="password"
-                            type="password"
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-gray-800 focus:border-gray-800 sm:text-sm"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                        />
+                        <label htmlFor="password" className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Password</label>
+                        <div className="mt-1.5">
+                            <input
+                                id="password"
+                                type="password"
+                                required
+                                className="block w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm transition duration-150 ease-in-out text-slate-800"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
                     </div>
 
-                    {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-200 text-center font-medium">{error}</div>}
+                    {error && (
+                        <div className="text-xs text-red-600 bg-red-50 p-3.5 rounded-xl border border-red-100 text-center font-semibold">
+                            {error}
+                        </div>
+                    )}
 
-                    <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50">
+                    <button 
+                        type="submit" 
+                        disabled={isLoading}
+                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-gradient-to-r from-pink-600 to-pink-800 hover:from-pink-700 hover:to-pink-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 shadow-pink-600/10"
+                    >
                         {isLoading ? 'Authenticating...' : 'Secure Sign In'}
                     </button>
                 </form>
+
+                <div className="text-center text-[10px] text-slate-400 mt-8 select-none border-t border-slate-100/80 pt-6 font-semibold tracking-wider">
+                    ENCRYPTED ADMINISTRATION NODE
+                </div>
             </div>
         </div>
     );

@@ -67,42 +67,48 @@ export default function StaffInventoryScreen() {
     const getStatusStyle = (status) => {
         switch (status) {
             case 'In Stock':
-                return 'bg-green-100 text-green-800 border-green-200';
+                return 'bg-emerald-50 text-emerald-700 border-emerald-100/80';
             case 'Low Stock':
-                return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                return 'bg-amber-50 text-amber-700 border-amber-100/80';
             case 'Out of Stock':
-                return 'bg-red-100 text-red-800 border-red-200';
+                return 'bg-rose-50 text-rose-700 border-rose-100/80';
             default:
-                return 'bg-gray-100 text-gray-800 border-gray-200';
+                return 'bg-slate-50 text-slate-700 border-slate-200/60';
         }
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
-            {/* Top Navigation */}
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-purple-200/40 via-fuchsia-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/30 via-pink-200/20 to-transparent blur-3xl pointer-events-none" />
+
             <StaffNavigation />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6 lg:px-8 shrink-0">
-                    <h2 className="text-xl font-semibold text-gray-800">Inventory View</h2>
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-purple-500 to-indigo-600"></span>
+                        Inventory Catalogue
+                    </h2>
                 </header>
-
-                <main className="flex-1 flex flex-col overflow-hidden bg-gray-50 p-6 lg:p-8 min-h-0">
+ 
+                <main className="flex-1 flex flex-col overflow-hidden p-6 lg:p-8 min-h-0">
                     {/* Filters and Search Bar */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
+                    <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-slate-200/60 shadow-sm mb-6 flex flex-col sm:flex-row gap-4 justify-between items-center shrink-0">
                         <div className="w-full sm:w-1/3">
                             <input 
                                 type="text" 
                                 placeholder="Search by item name or SKU..." 
-                                className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <div className="flex gap-4 w-full sm:w-auto">
                             <select 
-                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                className="px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
                             >
@@ -112,7 +118,7 @@ export default function StaffInventoryScreen() {
                                 ))}
                             </select>
                             <select 
-                                className="p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                className="px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
                             >
@@ -123,31 +129,31 @@ export default function StaffInventoryScreen() {
                             </select>
                         </div>
                     </div>
-
+ 
                     {/* Inventory Table Section */}
-                    <div className="bg-white shadow-sm rounded-xl border border-gray-100 flex flex-col flex-1 min-h-0 overflow-hidden">
+                    <div className="bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 flex flex-col flex-1 min-h-0 overflow-hidden">
                         <div className="overflow-x-auto overflow-y-auto flex-1 min-h-0">
-                            <table className="min-w-full divide-y divide-gray-200 relative">
-                                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                            <table className="min-w-full divide-y divide-slate-100 relative">
+                                <thead className="bg-slate-50/70 sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Number & SKU</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item Name/Desription</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item ID & SKU</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item Name & Description</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Category</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quantity</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit</th>
+                                        <th scope="col" className="px-6 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="bg-transparent divide-y divide-slate-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
-                                                Loading inventory...
+                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">
+                                                Loading catalogue inventory...
                                             </td>
                                         </tr>
                                     ) : error ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-10 text-center text-red-500">
+                                            <td colSpan="6" className="px-6 py-12 text-center text-rose-500 font-semibold text-sm">
                                                 Error loading inventory: {error}
                                             </td>
                                         </tr>
@@ -157,28 +163,28 @@ export default function StaffInventoryScreen() {
                                         else if (item.quantity_available < 10) derivedStatus = 'Low Stock';
                                         
                                         return (
-                                        <tr key={item.item_id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                        <tr key={item.item_id} className="hover:bg-purple-50/10 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-400 font-mono">
                                                 ITM-{String(item.item_id).padStart(4, '0')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">{item.item}</div>
-                                                <div className="text-sm text-gray-500">{item.description}</div>
+                                                <div className="text-sm font-bold text-slate-700">{item.item}</div>
+                                                <div className="text-xs font-semibold text-slate-400 mt-0.5">{item.description}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.category_name || ''}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                            <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500">{item.category_name || ''}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-bold">
                                                 {item.quantity_available}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-semibold">
                                                 {item.unit_name || ''}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
+                                                <span className={`px-3 py-1 inline-flex text-xs font-bold rounded-lg border ${getStatusStyle(derivedStatus)}`}>{derivedStatus}</span>
                                             </td>
                                         </tr>
                                     )}) : (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
+                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">
                                                 No items found matching your filters.
                                             </td>
                                         </tr>

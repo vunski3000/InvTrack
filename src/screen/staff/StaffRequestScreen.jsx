@@ -167,7 +167,7 @@ export default function StaffRequestScreen() {
                 dept: department,
                 name: name,
                 designation: designation,
-                request_date: requestDate, // Assuming your database uses snake_case 'request_date'
+                request_date: requestDate,
                 items,
                 status: 'Pending'
             }]);
@@ -190,6 +190,8 @@ export default function StaffRequestScreen() {
             setDesignation('');
             setRequestDate(new Date().toISOString().split('T')[0]);
             setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+            // Re-fetch my details to prep for the next request
+            fetchMyDetails();
         } catch (err) {
             console.error('Error submitting requisition:', err.message);
             alert('Failed to submit request: ' + err.message);
@@ -199,180 +201,191 @@ export default function StaffRequestScreen() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
-            {/* Top Navigation */}
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-purple-200/40 via-fuchsia-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/30 via-pink-200/20 to-transparent blur-3xl pointer-events-none" />
+
             <StaffNavigation />
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-4xl border border-gray-100 my-6">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Request Item</h2>
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <select
-                                    id="department"
-                                    value={department}
-                                    onChange={(e) => setDepartment(e.target.value)}
-                                    required
-                                    disabled
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 text-gray-500 cursor-not-allowed"
-                                >
-                                    <option value="" disabled>Select a department</option>
-                                    {departmentsList.map((dept, index) => (
-                                        <option key={index} value={dept}>{dept}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                                <input
-                                    type="text"
-                                    id="designation"
-                                    value={designation}
-                                    onChange={(e) => setDesignation(e.target.value)}
-                                    required
-                                    readOnly
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 cursor-not-allowed text-gray-500"
-                                    placeholder="e.g., Manager, Staff"
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                    readOnly
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 cursor-not-allowed text-gray-500"
-                                    placeholder="Enter your full name"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="requestDate" className="block text-sm font-medium text-gray-700 mb-1">Date of Request</label>
-                                <input
-                                    type="date"
-                                    id="requestDate"
-                                    value={requestDate}
-                                    onChange={(e) => setRequestDate(e.target.value)}
-                                    required
-                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50"
-                                    readOnly
-                                />
-                            </div>
-                        </div>
-                    
-                    <div className="mt-8 overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-5/12">Item Description</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Unit</th>
-                                    <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {items.map((item, index) => (
-                                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-4 py-3">
-                                            <select
-                                                value={item.itemNumber}
-                                                onChange={(e) => handleItemSelect(index, e.target.value)}
-                                                required
-                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                            >
-                                                <option value="" disabled>Select Item</option>
-                                                {inventoryList.map((invItem) => {
-                                                    const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
-                                                    return (
-                                                        <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>
-                                                    );
-                                                })}
-                                            </select>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="text"
-                                                value={item.itemDescription}
-                                                onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
-                                                required
-                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                placeholder="Brief description"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <input
-                                                type="number"
-                                                value={item.quantity}
-                                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                required
-                                                min="1"
-                                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                placeholder="Qty"
-                                            />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex space-x-2">
-                                                <select
-                                                    value={item.unit}
-                                                    onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                                                    required
-                                                    className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                >
-                                                    <option value="" disabled>Unit</option>
-                                                    {unitsList.map((u, i) => (
-                                                        <option key={i} value={u}>{u}</option>
-                                                    ))}
-                                                </select>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleAddUnit(index)}
-                                                    className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium text-sm shadow-sm whitespace-nowrap"
-                                                >+ Add</button>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {items.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveItem(index)}
-                                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                                    title="Remove Item"
-                                                >
-                                                    <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-purple-500 to-indigo-600"></span>
+                        Submit Requisition Request
+                    </h2>
+                </header>
 
-                    <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between">
-                        <button
-                            type="button"
-                            onClick={handleAddItem}
-                            className="w-full sm:w-auto px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm"
-                        >
-                            + Add Row
-                        </button>
-                        <button 
-                            type="submit" 
-                            disabled={isSubmitting}
-                            className="w-full sm:w-auto px-8 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSubmitting ? 'Submitting...' : 'Submit Requisition'}
-                        </button>
+                <div className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8 flex flex-col items-center">
+                    <div className="bg-white/80 backdrop-blur-md p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200/60 w-full max-w-4xl my-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label htmlFor="department" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Department</label>
+                                    <select
+                                        id="department"
+                                        value={department}
+                                        onChange={(e) => setDepartment(e.target.value)}
+                                        required
+                                        disabled
+                                        className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-medium text-sm shadow-inner"
+                                    >
+                                        <option value="" disabled>Select a department</option>
+                                        {departmentsList.map((dept, index) => (
+                                            <option key={index} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="designation" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Designation</label>
+                                    <input
+                                        type="text"
+                                        id="designation"
+                                        value={designation}
+                                        onChange={(e) => setDesignation(e.target.value)}
+                                        required
+                                        readOnly
+                                        className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-medium text-sm shadow-inner"
+                                        placeholder="e.g., Manager, Staff"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label htmlFor="name" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Your Name</label>
+                                    <input
+                                        type="text"
+                                        id="name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        required
+                                        readOnly
+                                        className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-medium text-sm shadow-inner"
+                                        placeholder="Enter your full name"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="requestDate" className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Date of Request</label>
+                                    <input
+                                        type="date"
+                                        id="requestDate"
+                                        value={requestDate}
+                                        onChange={(e) => setRequestDate(e.target.value)}
+                                        required
+                                        className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-semibold text-sm shadow-inner"
+                                        readOnly
+                                    />
+                                </div>
+                            </div>
+                        
+                        <div className="mt-8 border border-slate-200/60 rounded-xl overflow-hidden shadow-sm bg-white/40">
+                            <table className="min-w-full divide-y divide-slate-100">
+                                <thead className="bg-slate-50/70">
+                                    <tr>
+                                        <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/4">Item ID</th>
+                                        <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-5/12">Item Description</th>
+                                        <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Quantity</th>
+                                        <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/4">Unit</th>
+                                        <th scope="col" className="px-4 py-3.5 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-transparent divide-y divide-slate-100">
+                                    {items.map((item, index) => (
+                                        <tr key={index} className="hover:bg-purple-50/10 transition-colors">
+                                            <td className="px-4 py-3">
+                                                <select
+                                                    value={item.itemNumber}
+                                                    onChange={(e) => handleItemSelect(index, e.target.value)}
+                                                    required
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
+                                                >
+                                                    <option value="" disabled>Select Item</option>
+                                                    {inventoryList.map((invItem) => {
+                                                        const itemNum = `ITM-${String(invItem.item_id).padStart(4, '0')}`;
+                                                        return (
+                                                            <option key={invItem.item_id} value={itemNum}>{itemNum} - {invItem.item}</option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="text"
+                                                    value={item.itemDescription}
+                                                    onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
+                                                    required
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm"
+                                                    placeholder="Brief description"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <input
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                    required
+                                                    min="1"
+                                                    className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm"
+                                                    placeholder="Qty"
+                                                />
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex space-x-2">
+                                                    <select
+                                                        value={item.unit}
+                                                        onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                                                        required
+                                                        className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm cursor-pointer"
+                                                    >
+                                                        <option value="" disabled>Unit</option>
+                                                        {unitsList.map((u, i) => (
+                                                            <option key={i} value={u}>{u}</option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAddUnit(index)}
+                                                        className="px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer"
+                                                    >+ Add</button>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {items.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveItem(index)}
+                                                        className="p-1.5 rounded-xl hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
+                                                        title="Remove Item"
+                                                    >
+                                                        <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    </form>
+
+                        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-between">
+                            <button
+                                type="button"
+                                onClick={handleAddItem}
+                                className="w-full sm:w-auto px-6 py-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl transition font-bold shadow-sm text-sm cursor-pointer"
+                            >
+                                + Add Row
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="w-full sm:w-auto px-8 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition font-bold shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                                {isSubmitting ? 'Submitting...' : 'Submit Requisition'}
+                            </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

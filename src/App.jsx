@@ -26,6 +26,7 @@ import SysadminDashboardScreen from './screen/sysadmin/SysadminDashboardScreen.j
 import SysadminUserManagementScreen from './screen/sysadmin/SysadminUserManagementScreen.jsx'
 import SysadminBackupScreen from './screen/sysadmin/SysadminBackupScreen.jsx'
 import SysadminAuditLogsScreen from './screen/sysadmin/SysadminAuditLogsScreen.jsx'
+import SysadminConfigScreen from './screen/sysadmin/SysadminConfigScreen.jsx'
 
 function App() {
   return (
@@ -60,6 +61,7 @@ function App() {
             {/* System Admin Protected Routes */}
             <Route path="/sysadmin-dashboard" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminDashboardScreen /></ProtectedRoute>} />
             <Route path="/sysadmin-user-management" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminUserManagementScreen /></ProtectedRoute>} />
+            <Route path="/sysadmin-config" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminConfigScreen /></ProtectedRoute>} />
             <Route path="/sysadmin-backups" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminBackupScreen /></ProtectedRoute>} />
             <Route path="/sysadmin-audit-logs" element={<ProtectedRoute allowedRoles={['sysadmin']} redirectTo="/sysadmin-login"><SysadminAuditLogsScreen /></ProtectedRoute>} />
           </Routes>

@@ -17,9 +17,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Supabase Client
-SUPABASE_URL = os.environ.get("https://ycykvkhpyxxhgroqchhd.supabase.co")
-SUPABASE_SECRET_KEY = os.environ.get("sb_secret_K3WA34L5AuW6TCsM3BALPw_bfMh7abU")
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
+SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY")
+
+if not SUPABASE_URL or not SUPABASE_SECRET_KEY:
+    raise ValueError("SUPABASE_URL and SUPABASE_SECRET_KEY environment variables must be set")
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
     
 # Data Models

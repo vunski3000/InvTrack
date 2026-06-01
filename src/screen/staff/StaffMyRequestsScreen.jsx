@@ -164,112 +164,120 @@ export default function StaffMyRequestsScreen() {
     const getStatusStyle = (status) => {
         switch (status) {
             case 'Approved':
-                return 'bg-green-100 text-green-800 border-green-200';
+                return 'bg-emerald-50 text-emerald-700 border-emerald-100/80';
             case 'Pending':
-                return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+                return 'bg-amber-50 text-amber-700 border-amber-100/80';
             case 'Rejected':
-                return 'bg-red-100 text-red-800 border-red-200';
+                return 'bg-rose-50 text-rose-700 border-rose-100/80';
             default:
-                return 'bg-gray-100 text-gray-800 border-gray-200';
+                return 'bg-slate-50 text-slate-700 border-slate-200/60';
         }
     };
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50 font-sans">
+        <div className="flex flex-col h-screen bg-slate-50/50 font-sans relative overflow-hidden">
+            {/* Glowing background circles */}
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-purple-200/40 via-fuchsia-200/20 to-transparent blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-indigo-200/30 via-pink-200/20 to-transparent blur-3xl pointer-events-none" />
+
             <StaffNavigation />
 
             {/* Details Modal */}
             {isModalOpen && selectedRequest && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 transition-opacity duration-300 p-4">
-                    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
-                        <div className="flex justify-between items-start mb-6 shrink-0">
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 p-4 transition-all duration-300">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden transform scale-100 transition-all duration-300">
+                        <div className="flex justify-between items-start p-6 pb-4 border-b border-slate-100 shrink-0">
                             <div>
-                                <h3 className="text-2xl font-bold text-gray-800">Requisition Details: <span className="text-indigo-600">{selectedRequest.request_id}</span></h3>
-                                <div className="mt-2">
-                                    <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full border ${getStatusStyle(selectedRequest.status)}`}>
-                                        {selectedRequest.status === 'Pending' ? 'Pending Admin Action' : `Action done by Admin: ${selectedRequest.status}`}
+                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    Requisition Details: <span className="text-purple-600 font-black">{selectedRequest.request_id}</span>
+                                </h3>
+                                <div className="mt-1.5 flex items-center gap-2">
+                                    <span className={`px-3 py-1 inline-flex text-xs font-bold rounded-lg border ${getStatusStyle(selectedRequest.status)}`}>
+                                        {selectedRequest.status === 'Pending' ? 'Pending Admin Action' : `Action: ${selectedRequest.status}`}
                                     </span>
                                 </div>
                             </div>
-                            <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-3xl leading-none">&times;</button>
+                            <button onClick={closeModal} className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all text-xl font-bold cursor-pointer">&times;</button>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto pr-2 min-h-0">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200 shrink-0">
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Requester Name</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.name}</p>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/50 shrink-0">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Requester Name</p>
+                                    <p className="text-sm font-bold text-slate-700">{selectedRequest.name}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Designation</p>
+                                    <p className="text-sm font-bold text-slate-700">{selectedRequest.designation}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Department</p>
+                                    <p className="text-sm font-bold text-slate-700">{selectedRequest.dept}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Date of Request</p>
+                                    <p className="text-sm font-bold text-slate-700">{selectedRequest.request_date}</p>
+                                </div>
                             </div>
+
+                            {/* Admin Remarks and Notes */}
+                            {(selectedRequest.remarks || selectedRequest.admin_note) && (
+                                <div className="flex flex-col space-y-4 shrink-0">
+                                    {selectedRequest.remarks && (
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Admin Remarks / Reason</p>
+                                            <p className="p-3 bg-purple-50/50 border border-purple-100/50 rounded-xl text-xs text-purple-900 whitespace-pre-wrap font-mono font-medium">
+                                                {selectedRequest.remarks}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {selectedRequest.admin_note && (
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Admin Notes</p>
+                                            <p className="p-3 bg-amber-50/50 border border-amber-100/80 rounded-xl text-xs text-amber-900 whitespace-pre-wrap font-mono font-medium">
+                                                {selectedRequest.admin_note}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Designation</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.designation}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Department</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.dept}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-500 mb-1">Date of Request</p>
-                                <p className="font-semibold text-gray-900">{selectedRequest.request_date}</p>
+                                <h4 className="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider">Requested Items</h4>
+                                <div className="overflow-hidden border border-slate-200/60 rounded-xl shadow-sm">
+                                    <table className="min-w-full divide-y divide-slate-100">
+                                        <thead className="bg-slate-50/70">
+                                            <tr>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Item Number</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/2">Item Description</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/12">Quantity</th>
+                                                <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/6">Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-transparent divide-y divide-slate-100">
+                                            {selectedRequest.items.map((item, index) => (
+                                                <tr key={index} className="hover:bg-purple-50/10 transition-colors">
+                                                    <td className="px-4 py-3 text-sm font-bold text-slate-700">{item.itemNumber}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-600">{item.itemDescription}</td>
+                                                    <td className="px-4 py-3 text-sm font-bold text-slate-700">{item.quantity}</td>
+                                                    <td className="px-4 py-3 text-sm text-slate-400">{item.unit}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Admin Remarks and Notes */}
-                        {(selectedRequest.remarks || selectedRequest.admin_note) && (
-                            <div className="flex flex-col space-y-4 mb-6 shrink-0">
-                                {selectedRequest.remarks && (
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-500 mb-1">Admin Remarks / Reason</p>
-                                        <p className="p-3 bg-indigo-50 border border-indigo-100 rounded-md text-sm text-indigo-900 whitespace-pre-wrap font-mono text-xs">
-                                            {selectedRequest.remarks}
-                                        </p>
-                                    </div>
-                                )}
-                                {selectedRequest.admin_note && (
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-500 mb-1">Admin Notes</p>
-                                        <p className="p-3 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-900 whitespace-pre-wrap font-mono text-xs">
-                                            {selectedRequest.admin_note}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        <h4 className="text-lg font-semibold text-gray-800 mb-3 shrink-0">Requested Items</h4>
-                        <div className="overflow-x-auto border border-gray-200 rounded-lg mb-6">
-                            <table className="min-w-full divide-y divide-gray-200 relative">
-                                <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                                    <tr>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Item Number</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Item Description</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Quantity</th>
-                                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Unit</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {selectedRequest.items.map((item, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.itemNumber}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-700">{item.itemDescription}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{item.quantity}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-500">{item.unit}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                        </div>
-
-                        <div className="flex justify-between shrink-0 pt-4 border-t border-gray-200 mt-auto">
-                            <button onClick={() => handleDeleteRequest(selectedRequest.request_id)} className="px-6 py-2 bg-white text-red-600 border border-red-600 rounded-md hover:bg-red-50 transition font-medium shadow-sm">
-                                Delete
+                        <div className="flex justify-between shrink-0 p-6 pt-4 border-t border-slate-100 bg-slate-50/30">
+                            <button onClick={() => handleDeleteRequest(selectedRequest.request_id)} className="px-5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl transition font-bold shadow-sm text-xs cursor-pointer">
+                                Delete Request
                             </button>
                             <div className="flex space-x-3">
-                                <button onClick={handleGenerateRequest} className="px-6 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md hover:bg-indigo-100 transition font-medium shadow-sm whitespace-nowrap">
+                                <button onClick={handleGenerateRequest} className="px-5 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 rounded-xl transition font-bold shadow-sm text-xs whitespace-nowrap cursor-pointer">
                                     Print Form
                                 </button>
-                                <button onClick={closeModal} className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition font-medium shadow-sm">
+                                <button onClick={closeModal} className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl transition font-bold shadow-sm text-xs cursor-pointer">
                                     Close
                                 </button>
                             </div>
@@ -279,36 +287,47 @@ export default function StaffMyRequestsScreen() {
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col items-center p-4 sm:p-6 overflow-y-auto">
-                <div className="w-full max-w-6xl mb-6 flex justify-between items-center mt-2">
-                    <h2 className="text-2xl font-bold text-gray-800">My Requests</h2>
-                </div>
-                
-                <div className="bg-white shadow-sm rounded-xl border border-gray-100 w-full max-w-6xl overflow-hidden">
-                    <ul className="divide-y divide-gray-200">
-                        {loading ? (
-                            <li className="px-6 py-10 text-center text-gray-500 font-medium">Loading requests...</li>
-                        ) : requests.length > 0 ? (
-                            requests.map((req) => (
-                                <li key={req.request_id} className="px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer flex justify-between items-center" onClick={() => handleViewDetails(req)}>
-                                    <div className="flex flex-col">
-                                        <span className="text-lg font-medium text-gray-900">{req.request_id} - {req.name}</span>
-                                        <span className="text-sm text-gray-500">{req.dept} Department • {req.designation}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-4">
-                                        <span className="text-sm text-gray-500 hidden sm:block">{req.request_date}</span>
-                                        <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getStatusStyle(req.status)}`}>
-                                            {req.status === 'Pending' ? 'Pending' : `Admin ${req.status}`}
-                                        </span>
-                                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                                    </div>
-                                </li>
-                            ))
-                        ) : (
-                            <li className="px-6 py-10 text-center text-gray-500 font-medium">No requests found.</li>
-                        )}
-                    </ul>
-                </div>
+            <div className="flex-1 flex flex-col overflow-hidden z-10">
+                <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
+                    <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-purple-500 to-indigo-600"></span>
+                        My Requisition Requests
+                    </h2>
+                </header>
+
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8 flex flex-col items-center">
+                    <div className="w-full max-w-5xl">
+                        <div className="bg-white/80 backdrop-blur-md shadow-sm rounded-2xl border border-slate-200/60 overflow-hidden">
+                            <ul className="divide-y divide-slate-100">
+                                {loading ? (
+                                    <li className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">Loading requests...</li>
+                                ) : requests.length > 0 ? (
+                                    requests.map((req) => (
+                                        <li key={req.request_id} className="px-6 py-5 hover:bg-purple-50/10 transition-all cursor-pointer flex justify-between items-center group" onClick={() => handleViewDetails(req)}>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-base font-bold text-slate-800 group-hover:text-purple-600 transition-colors">{req.request_id}</span>
+                                                <span className="text-xs font-semibold text-slate-400 flex flex-wrap items-center gap-1.5">
+                                                    <span>{req.name}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span>{req.dept} • {req.designation}</span>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center space-x-4">
+                                                <span className="text-xs font-bold text-slate-400 hidden sm:block bg-slate-100/80 border border-slate-200/40 px-3 py-1.5 rounded-lg">{req.request_date}</span>
+                                                <span className={`px-3 py-1 inline-flex text-xs font-bold rounded-lg border ${getStatusStyle(req.status)}`}>
+                                                    {req.status}
+                                                </span>
+                                                <svg className="w-5 h-5 text-slate-400 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"></path></svg>
+                                            </div>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <li className="px-6 py-12 text-center text-slate-400 font-semibold text-sm">No requests found.</li>
+                                )}
+                            </ul>
+                        </div>
+                    </div>
+                </main>
             </div>
         </div>
     );
