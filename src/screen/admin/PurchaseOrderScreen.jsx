@@ -138,16 +138,17 @@ export default function PurchaseOrderScreen() {
             // Audit Log
             await logAudit(adminName, 'Create Purchase Order', `Created new purchase order ${newId}`);
 
-            alert('Purchase Order created successfully!');
-            setPurchaseOrders(prev => [data[0], ...prev]);
-            setRequesterName('');
-            setDepartment('');
-            setRequestDate(new Date().toISOString().split('T')[0]);
-            setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
-            setActiveTab('list'); // Switch to the list tab after submitting
+            window.showAlert('Purchase Order created successfully!', 'Success', () => {
+                setPurchaseOrders(prev => [data[0], ...prev]);
+                setRequesterName('');
+                setDepartment('');
+                setRequestDate(new Date().toISOString().split('T')[0]);
+                setItems([{ itemNumber: '', unit: '', itemDescription: '', quantity: '' }]);
+                setActiveTab('list'); // Switch to the list tab after submitting
+            });
         } catch (error) {
             console.error('Error submitting purchase order:', error);
-            alert('Failed to create Purchase Order. Please check console for details.');
+            window.showAlert('Failed to create Purchase Order. Please check console for details.', 'Error');
         }
     };
 
@@ -169,7 +170,7 @@ export default function PurchaseOrderScreen() {
     };
 
     const handleDeleteOrder = async () => {
-        if (window.confirm(`Are you sure you want to delete purchase order ${selectedOrder.purchase_order_id}?`)) {
+        window.showConfirm(`Are you sure you want to delete purchase order ${selectedOrder.purchase_order_id}?`, 'Delete Order', async () => {
             try {
                 const { error } = await supabase
                     .from('purchase_orders')
@@ -181,14 +182,15 @@ export default function PurchaseOrderScreen() {
                 // Audit Log
                 await logAudit(adminName, 'Delete Purchase Order', `Deleted purchase order ${selectedOrder.purchase_order_id}`);
 
-                setPurchaseOrders(prev => prev.filter(p => p.purchase_order_id !== selectedOrder.purchase_order_id));
-                closeModal();
-                alert('Purchase order deleted successfully.');
+                window.showAlert('Purchase order deleted successfully.', 'Deleted', () => {
+                    setPurchaseOrders(prev => prev.filter(p => p.purchase_order_id !== selectedOrder.purchase_order_id));
+                    closeModal();
+                });
             } catch (error) {
                 console.error('Error deleting order:', error);
-                alert('Failed to delete order.');
+                window.showAlert('Failed to delete order.', 'Error');
             }
-        }
+        });
     };
 
     const handleSaveEdit = async (e) => {
@@ -207,52 +209,51 @@ export default function PurchaseOrderScreen() {
 
             if (error) throw error;
 
-            setPurchaseOrders(prev => prev.map(p => p.purchase_order_id === editForm.purchase_order_id ? data[0] : p));
-            setSelectedOrder(data[0]);
-            setIsEditingOrder(false);
-            alert('Purchase order updated successfully!');
+            window.showAlert('Purchase order updated successfully!', 'Success', () => {
+                setPurchaseOrders(prev => prev.map(p => p.purchase_order_id === editForm.purchase_order_id ? data[0] : p));
+                setSelectedOrder(data[0]);
+                setIsEditingOrder(false);
+            });
         } catch (error) {
             console.error('Error updating order:', error);
-            alert('Failed to update order.');
+            window.showAlert('Failed to update order.', 'Error');
         }
     };
 
     const handleOrderAction = async (orderId, action) => {
-        if (!window.confirm(`Are you sure you want to mark this order as ${action}?`)) {
-            return;
-        }
+        window.showConfirm(`Are you sure you want to mark this order as ${action}?`, 'Confirm Action', async () => {
+            try {
+                const { error } = await supabase
+                    .from('purchase_orders')
+                    .update({ 
+                        status: action,
+                        approved_by: adminName 
+                    })
+                    .eq('purchase_order_id', orderId);
 
-        try {
-            const { error } = await supabase
-                .from('purchase_orders')
-                .update({ 
-                    status: action,
-                    approved_by: adminName 
-                })
-                .eq('purchase_order_id', orderId);
-
-            if (error) throw error;
-            
-            setPurchaseOrders(prevOrders => 
-                prevOrders.map(order => 
-                    order.purchase_order_id === orderId 
-                        ? { ...order, status: action, approved_by: adminName } 
-                        : order
-                )
-            );
-            
-            if (selectedOrder && selectedOrder.purchase_order_id === orderId) {
-                setSelectedOrder({ ...selectedOrder, status: action, approved_by: adminName });
+                if (error) throw error;
+                
+                // Generate an automated Audit Log entry
+                await logAudit(adminName, `Purchase Order ${action}`, `Marked purchase order ${orderId} as ${action}`);
+                
+                window.showAlert(`Order successfully ${action.toLowerCase()} by ${adminName}.`, 'Action Saved', () => {
+                    setPurchaseOrders(prevOrders => 
+                        prevOrders.map(order => 
+                            order.purchase_order_id === orderId 
+                                ? { ...order, status: action, approved_by: adminName } 
+                                : order
+                        )
+                    );
+                    
+                    if (selectedOrder && selectedOrder.purchase_order_id === orderId) {
+                        setSelectedOrder({ ...selectedOrder, status: action, approved_by: adminName });
+                    }
+                });
+            } catch (err) {
+                console.error(`Error updating order to ${action}:`, err.message);
+                window.showAlert(`Failed to update the purchase order: ${err.message}`, 'Error');
             }
-            
-            // Generate an automated Audit Log entry
-            await logAudit(adminName, `Purchase Order ${action}`, `Marked purchase order ${orderId} as ${action}`);
-            
-            alert(`Order successfully ${action.toLowerCase()} by ${adminName}.`);
-        } catch (err) {
-            console.error(`Error updating order to ${action}:`, err.message);
-            alert(`Failed to update the purchase order: ${err.message}`);
-        }
+        });
     };
 
     const handleEditItemSelect = (index, selectedItemNumber) => {

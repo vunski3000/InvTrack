@@ -93,8 +93,9 @@ export default function NewItemScreen() {
             // Audit Log
             await logAudit(adminName, 'Add Item', `Added new item ITM-${String(nextId).padStart(4, '0')} (${itemName}) to inventory`);
 
-            alert('Item added successfully!');
-            navigate('/inventory');
+            window.showAlert('Item added successfully!', 'Success', () => {
+                navigate('/inventory');
+            });
         } catch (err) {
             console.error("Error adding item:", err.message);
             setError(err.message);
@@ -114,7 +115,7 @@ export default function NewItemScreen() {
                     setCategories([...categories, upperCategory]);
                 } catch (err) {
                     console.error("Error adding category:", err.message);
-                    alert("Failed to add category.");
+                    window.showAlert("Failed to add category.", "Error");
                     return;
                 }
             }
@@ -133,7 +134,7 @@ export default function NewItemScreen() {
                     setUnits([...units, lowerUnit]);
                 } catch (err) {
                     console.error("Error adding unit:", err.message);
-                    alert("Failed to add unit.");
+                    window.showAlert("Failed to add unit.", "Error");
                     return;
                 }
             }
