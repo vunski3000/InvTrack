@@ -3,6 +3,8 @@ import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
 import { logAudit } from '../../utils/auditLogger';
 
+const PROXY_URL = 'http://localhost:3001';
+
 export default function PersonnelScreen() {
     const [personnel, setPersonnel] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -93,8 +95,18 @@ export default function PersonnelScreen() {
                 // Exclude the primary key to prevent update constraints, update only other details
                 const { personnel_id, ...updatePayload } = dataToSave;
                 
-                const { error } = await supabase.from('personnel').update(updatePayload).eq('personnel_id', editingId);
-                if (error) throw error;
+                const response = await fetch(`${PROXY_URL}/api/personnel/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ editingId, updatePayload })
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to update personnel");
+                }
                 
                 // Audit Log
                 await logAudit(adminName, 'Update Personnel', `Updated personnel ${formData.name} (ID: ${formData.personnel_id})`);
@@ -110,8 +122,18 @@ export default function PersonnelScreen() {
                     setEditingId(null);
                 });
             } else {
-                const { error } = await supabase.from('personnel').insert([dataToSave]);
-                if (error) throw error;
+                const response = await fetch(`${PROXY_URL}/api/personnel/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(dataToSave)
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to add personnel");
+                }
                 
                 // Audit Log
                 await logAudit(adminName, 'Add Personnel', `Added new personnel ${formData.name} (ID: ${formData.personnel_id})`);
@@ -135,8 +157,18 @@ export default function PersonnelScreen() {
     const handleDelete = async (id) => {
         window.showConfirm("Are you sure you want to remove this personnel?", "Remove Personnel", async () => {
             try {
-                const { error } = await supabase.from('personnel').delete().eq('personnel_id', id);
-                if (error) throw error;
+                const response = await fetch(`${PROXY_URL}/api/personnel/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id })
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Failed to delete personnel");
+                }
                 
                 // Audit Log
                 await logAudit(adminName, 'Delete Personnel', `Deleted personnel (ID: ${id})`);

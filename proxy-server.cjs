@@ -208,6 +208,60 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Personnel endpoints
+        if (pathname === '/api/personnel/add' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const result = await makeSupabaseRequest('/rest/v1/personnel', 'POST', parsed);
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/personnel/update' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { editingId, updatePayload } = parsed;
+                    const result = await makeSupabaseRequest(`/rest/v1/personnel?personnel_id=eq.${editingId}`, 'PATCH', updatePayload);
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/personnel/delete' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { id } = parsed;
+                    const result = await makeSupabaseRequest(`/rest/v1/personnel?personnel_id=eq.${id}`, 'DELETE');
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
         // Not Found
         res.writeHead(404, corsHeaders);
         res.end(JSON.stringify({ error: "Not Found" }));

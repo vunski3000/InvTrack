@@ -313,14 +313,6 @@ export default function PPMPScreen() {
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...ppmpForm.items];
-
-        if (field === 'quantity' && newItems[index].maxQuantity !== undefined) {
-            const max = parseInt(newItems[index].maxQuantity, 10);
-            if (value !== '' && parseInt(value, 10) > max) {
-                value = max.toString(); // Clamp to the maximum available stock
-            }
-        }
-
         newItems[index][field] = value;
         setPpmpForm({ ...ppmpForm, items: newItems });
     };
@@ -404,8 +396,7 @@ export default function PPMPScreen() {
                                     <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Description" />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="number" required min="1" max={item.maxQuantity || undefined} value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Qty" />
-                                    {item.maxQuantity !== undefined && <div className="text-[10px] font-bold text-slate-400 mt-1">Max: {item.maxQuantity}</div>}
+                                    <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Qty" />
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex space-x-2">
