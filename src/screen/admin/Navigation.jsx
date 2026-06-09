@@ -76,7 +76,7 @@ export default function Navigation() {
         setNotificationOpen(isOpening);
 
         if (isOpening) {
-            const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+            const unreadIds = notifications.filter(n => !n.is_read).map(n => n.notification_id);
             setActiveHighlights(new Set(unreadIds));
 
             if (notifications.length > 0) {
@@ -87,7 +87,7 @@ export default function Navigation() {
 
             if (unreadIds.length > 0) {
                 setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-                const { error } = await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
+                const { error } = await supabase.from('notifications').update({ is_read: true }).in('notification_id', unreadIds);
                 if (error) {
                     console.error("Database update failed, but localStorage will hide the red dot:", error.message);
                 }
@@ -193,9 +193,9 @@ export default function Navigation() {
                                 ) : (
                                     <ul className="divide-y divide-slate-100">
                                         {notifications.map((notif, index) => {
-                                            const isHighlighted = !notif.is_read || activeHighlights.has(notif.id);
+                                            const isHighlighted = !notif.is_read || activeHighlights.has(notif.notification_id);
                                             return (
-                                                <li key={notif.id || index} className={`px-4 py-3 cursor-pointer transition-colors ${isHighlighted ? 'bg-indigo-50/50 hover:bg-indigo-100/50' : 'hover:bg-slate-50'}`} onMouseDown={() => navigate('/admin-requests')}>
+                                                <li key={notif.notification_id || index} className={`px-4 py-3 cursor-pointer transition-colors ${isHighlighted ? 'bg-indigo-50/50 hover:bg-indigo-100/50' : 'hover:bg-slate-50'}`} onMouseDown={() => navigate('/admin-requests')}>
                                                     <p className={`text-xs leading-relaxed ${isHighlighted ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>{notif.message}</p>
                                                     <span className={`text-[10px] mt-1 block font-bold ${isHighlighted ? 'text-indigo-600' : 'text-slate-400'}`}>
                                                         {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

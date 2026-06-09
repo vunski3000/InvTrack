@@ -75,7 +75,7 @@ export default function AdminRequestScreen() {
     };
 
     const handleDeleteRequest = async (requestId) => {
-        if (window.confirm("Are you sure you want to delete this request?")) {
+        window.showConfirm("Are you sure you want to delete this request?", "Delete Request", async () => {
             try {
                 const requestToDelete = requests.find(r => r.request_id === requestId);
 
@@ -98,12 +98,12 @@ export default function AdminRequestScreen() {
 
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();
-                alert("Request deleted successfully!");
+                window.showAlert("Request deleted successfully!", "Success");
             } catch (error) {
                 console.error('Error deleting request:', error);
-                alert('Failed to delete request. Please try again.');
+                window.showAlert('Failed to delete request. Please try again.', 'Error');
             }
-        }
+        });
     };
 
     const buildUpdatedText = (existingText, newText) => {
@@ -143,6 +143,15 @@ export default function AdminRequestScreen() {
 
             if (error) throw error;
 
+            // Send notification to the staff member
+            if (remarks.trim() || adminNote.trim()) {
+                const { error: notifError } = await supabase.from('notifications').insert([{
+                    target_user: selectedRequest.name,
+                    message: `The admin left a note on your request (${selectedRequest.request_id}).`
+                }]);
+                if (notifError) console.error("Failed to send notification:", notifError);
+            }
+
             setRequests(prev => prev.map(req => 
                 req.request_id === selectedRequest.request_id ? { ...req, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
             ));
@@ -153,16 +162,16 @@ export default function AdminRequestScreen() {
             setSelectedRequest(prev => ({ ...prev, remarks: updatedRemarks, admin_note: updatedAdminNote }));
             setRemarks('');
             setAdminNote('');
-            alert('Notes saved successfully!');
+            window.showAlert('Notes saved successfully!', 'Success');
         } catch (error) {
             console.error('Error saving notes:', error);
-            alert(`Failed to save notes: ${error.message}`);
+            window.showAlert(`Failed to save notes: ${error.message}`, 'Error');
         }
     };
 
     const updateStatus = async (newStatus) => {
         if (newStatus === 'Rejected' && !remarks.trim()) {
-            alert('Please provide Remarks / Action Reason before rejecting this request.');
+            window.showAlert('Please provide Remarks / Action Reason before rejecting this request.', 'Warning');
             return;
         }
 
@@ -221,11 +230,11 @@ export default function AdminRequestScreen() {
                 req.request_id === selectedRequest.request_id ? { ...req, status: newStatus, remarks: updatedRemarks, admin_note: updatedAdminNote, items: selectedRequest.items } : req
             ));
             
-            alert(`Request ${newStatus} successfully!`);
+            window.showAlert(`Request ${newStatus} successfully!`, 'Success');
             closeModal();
         } catch (error) {
             console.error('Error updating status:', error);
-            alert(`Failed to update status: ${error.message}`);
+            window.showAlert(`Failed to update status: ${error.message}`, 'Error');
         }
     };
 

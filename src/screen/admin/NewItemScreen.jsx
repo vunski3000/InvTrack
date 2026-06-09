@@ -8,6 +8,7 @@ export default function NewItemScreen() {
     const navigate = useNavigate();
     // Form state
     const [itemName, setItemName] = useState('');
+    const [itemNumber, setItemNumber] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [quantity, setQuantity] = useState('');
@@ -20,7 +21,23 @@ export default function NewItemScreen() {
         fetchCategories();
         fetchUnits();
         fetchAdminDetails();
+        fetchNextItemNumber();
     }, []);
+
+    const fetchNextItemNumber = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_procurement')
+                .select('item_id')
+                .order('item_id', { ascending: false })
+                .limit(1);
+            if (error) throw error;
+            const nextId = (data && data.length > 0) ? data[0].item_id + 1 : 1;
+            setItemNumber(`ITM-${String(nextId).padStart(4, '0')}`);
+        } catch (err) {
+            console.error("Error fetching next item number:", err.message);
+        }
+    };
 
     const fetchAdminDetails = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -65,7 +82,7 @@ export default function NewItemScreen() {
         setError(null);
 
         try {
-            // Fetch the current maximum item_id to determine the next ID
+            // Re-fetch max id on submit just to make sure there are no duplicate key conflicts if others inserted
             const { data: maxData, error: maxError } = await supabase
                 .from('inventory_procurement')
                 .select('item_id')
@@ -73,13 +90,17 @@ export default function NewItemScreen() {
                 .limit(1);
                 
             if (maxError) throw maxError;
-            let nextId = (maxData && maxData.length > 0) ? maxData[0].item_id + 1 : 1;
+            const currentMaxId = (maxData && maxData.length > 0) ? maxData[0].item_id : 0;
+            const targetId = Math.max(
+                parseInt(itemNumber.replace('ITM-', ''), 10) || 0,
+                currentMaxId + 1
+            );
 
             const { error: insertError } = await supabase
                 .from('inventory_procurement')
                 .insert([
                     {
-                        item_id: nextId,
+                        item_id: targetId,
                         item: itemName,
                         description: description,
                         category: category,
@@ -177,6 +198,16 @@ export default function NewItemScreen() {
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label htmlFor="itemNumber" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Number (Auto-generated)</label>
+                                    <input
+                                        type="text"
+                                        id="itemNumber"
+                                        value={itemNumber}
+                                        readOnly
+                                        className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200/60 rounded-xl shadow-inner text-sm font-semibold text-slate-500 cursor-not-allowed mb-4"
+                                    />
+                                </div>
                                 <div>
                                     <label htmlFor="itemName" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Item Name</label>
                                     <input

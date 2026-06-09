@@ -35,51 +35,55 @@ export default function SysadminBackupScreen() {
         : "px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 cursor-pointer flex items-center gap-1.5";
 
     const handleFullBackup = async () => {
-        if (!window.confirm("Are you sure you want to export the entire database? This may take a moment depending on the size of the data.")) return;
-
-        setIsExporting(true);
-        setExportStatus('Initializing backup...');
-        
-        const backupData = {
-            timestamp: new Date().toISOString(),
-            tables: {}
-        };
-
-        try {
-            for (const table of tablesToBackup) {
-                setExportStatus(`Exporting table: ${table}...`);
-                const { data, error } = await supabase.from(table).select('*');
+        window.showConfirm(
+            "Are you sure you want to export the entire database? This may take a moment depending on the size of the data.",
+            "Export Confirmation",
+            async () => {
+                setIsExporting(true);
+                setExportStatus('Initializing backup...');
                 
-                if (error) {
-                    console.error(`Error exporting ${table}:`, error.message);
-                    backupData.tables[table] = { error: error.message };
-                } else {
-                    backupData.tables[table] = data;
+                const backupData = {
+                    timestamp: new Date().toISOString(),
+                    tables: {}
+                };
+
+                try {
+                    for (const table of tablesToBackup) {
+                        setExportStatus(`Exporting table: ${table}...`);
+                        const { data, error } = await supabase.from(table).select('*');
+                        
+                        if (error) {
+                            console.error(`Error exporting ${table}:`, error.message);
+                            backupData.tables[table] = { error: error.message };
+                        } else {
+                            backupData.tables[table] = data;
+                        }
+                    }
+
+                    setExportStatus('Finalizing JSON file...');
+                    
+                    // Create and download the JSON file
+                    const jsonString = JSON.stringify(backupData, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `invtrack_full_backup_${new Date().toISOString().split('T')[0]}.json`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    setExportStatus('Backup completed successfully!');
+                    setTimeout(() => setExportStatus(''), 4000);
+                } catch (err) {
+                    console.error("Backup failed:", err);
+                    setExportStatus(`Backup failed: ${err.message}`);
+                } finally {
+                    setIsExporting(false);
                 }
             }
-
-            setExportStatus('Finalizing JSON file...');
-            
-            // Create and download the JSON file
-            const jsonString = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([jsonString], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `invtrack_full_backup_${new Date().toISOString().split('T')[0]}.json`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            setExportStatus('Backup completed successfully!');
-            setTimeout(() => setExportStatus(''), 4000);
-        } catch (err) {
-            console.error("Backup failed:", err);
-            setExportStatus(`Backup failed: ${err.message}`);
-        } finally {
-            setIsExporting(false);
-        }
+        );
     };
 
     return (

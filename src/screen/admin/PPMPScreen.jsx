@@ -17,6 +17,8 @@ export default function PPMPScreen() {
     const [ppmpForm, setPpmpForm] = useState({ name: '', department: '', year: '', items: [] });
     const [adminName, setAdminName] = useState('Admin');
     const [inventoryList, setInventoryList] = useState([]);
+    const [activeDropdownIndex, setActiveDropdownIndex] = useState(null);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
     const fetchInventory = async () => {
         try {
@@ -76,68 +78,35 @@ export default function PPMPScreen() {
         setIsModalOpen(false);
         setSelectedPPMP(null);
         setIsEditingPPMP(false);
+        setActiveDropdownIndex(null);
     };
 
     const handleOpenCreateModal = () => {
         const currentYear = new Date().getFullYear().toString();
-
-        let maxId = 0;
-        inventoryList.forEach(item => {
-            if (item.item_id > maxId) maxId = item.item_id;
-        });
-        const nextSku = `ITM-${String(maxId + 1).padStart(4, '0')}`;
 
         setPpmpForm({
             ppmp_id: '',
             name: '',
             department: '',
             year: currentYear,
-            items: [{ itemNumber: nextSku, itemDescription: '', quantity: '', unit: '' }]
+            items: [{ itemNumber: '', itemDescription: '', quantity: '', unit: '' }]
         });
         setIsCreateModalOpen(true);
-    };
-
-    const syncNewItemsToInventory = async (items) => {
-        const defaultCategory = 'General'; // Ensure this matches your preferred default category
-
-        // Ensure the default category exists to prevent foreign key constraint errors
-        try {
-            const { data: existingCat } = await supabase.from('categories').select('*').ilike('category_name', defaultCategory);
-            if (!existingCat || existingCat.length === 0) {
-                await supabase.from('categories').insert([{ category_name: defaultCategory }]);
-            }
-        } catch (e) {
-            console.warn("Could not check/create default category:", e.message);
-        }
-
-        const newInventoryItemsMap = new Map();
-        for (const item of items) {
-            const parsedId = parseInt(item.itemNumber.replace('ITM-', ''), 10);
-            if (!isNaN(parsedId)) {
-                const exists = inventoryList.find(inv => inv.item_id === parsedId);
-                if (!exists && !newInventoryItemsMap.has(parsedId)) {
-                    newInventoryItemsMap.set(parsedId, {
-                        item_id: parsedId,
-                        item: item.itemDescription,
-                        category_name: defaultCategory,
-                        quantity_available: 0,
-                        unit_name: item.unit
-                    });
-                }
-            }
-        }
-        const newInventoryItems = Array.from(newInventoryItemsMap.values());
-        if (newInventoryItems.length > 0) {
-            const { error } = await supabase.from('inventory_procurement').insert(newInventoryItems);
-            if (error) throw error;
-            await logAudit(adminName, 'Add Items', `Added ${newInventoryItems.length} new items to inventory from PPMP`);
-            await fetchInventory();
-        }
+        setActiveDropdownIndex(null);
     };
 
     const handleCreatePPMP = async (e) => {
         e.preventDefault();
         try {
+            // Validation: Ensure all items exist in the inventory
+            const invalidItem = ppmpForm.items.find(item => 
+                !inventoryList.some(inv => `ITM-${String(inv.item_id).padStart(4, '0')}` === item.itemNumber)
+            );
+            if (invalidItem) {
+                alert(`Item number "${invalidItem.itemNumber}" is not a valid item in the inventory. Please select an item from the list.`);
+                return;
+            }
+
             // Dynamically query the database on submit to prevent duplicate ID errors
             const { data: yearPpmps, error: fetchError } = await supabase
                 .from('ppmps')
@@ -155,8 +124,6 @@ export default function PPMPScreen() {
             }
             const newPpmpId = `PPMP-${ppmpForm.year}-${String(nextNum).padStart(2, '0')}`;
 
-            await syncNewItemsToInventory(ppmpForm.items);
-
             const { error } = await supabase.from('ppmps').insert([{
                 ppmp_id: newPpmpId,
                 name: ppmpForm.name,
@@ -173,6 +140,7 @@ export default function PPMPScreen() {
             if (data) setPpmps(data);
             
             setIsCreateModalOpen(false);
+            setActiveDropdownIndex(null);
         } catch (err) {
             console.error("Error creating PPMP:", err.message);
             alert("Failed to create PPMP: " + err.message);
@@ -187,7 +155,14 @@ export default function PPMPScreen() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         try {
-            await syncNewItemsToInventory(ppmpForm.items);
+            // Validation: Ensure all items exist in the inventory
+            const invalidItem = ppmpForm.items.find(item => 
+                !inventoryList.some(inv => `ITM-${String(inv.item_id).padStart(4, '0')}` === item.itemNumber)
+            );
+            if (invalidItem) {
+                alert(`Item number "${invalidItem.itemNumber}" is not a valid item in the inventory. Please select an item from the list.`);
+                return;
+            }
 
             const { error } = await supabase.from('ppmps').update({
                 name: ppmpForm.name,
@@ -205,6 +180,7 @@ export default function PPMPScreen() {
             
             setSelectedPPMP(ppmpForm);
             setIsEditingPPMP(false);
+            setActiveDropdownIndex(null);
         } catch (err) {
             console.error("Error saving PPMP:", err.message);
             alert("Failed to save changes: " + err.message);
@@ -213,20 +189,19 @@ export default function PPMPScreen() {
 
     const handleDeletePPMP = async () => {
         if (!selectedPPMP) return;
-        if (window.confirm(`Are you sure you want to delete ${selectedPPMP.ppmp_id}?`)) {
-            try {
-                const { error } = await supabase.from('ppmps').delete().eq('ppmp_id', selectedPPMP.ppmp_id);
-                if (error) throw error;
-                
-                // Audit Log
-                await logAudit(adminName, 'Delete PPMP', `Deleted PPMP ${selectedPPMP.ppmp_id} (${selectedPPMP.name})`);
+        try {
+            const { error } = await supabase.from('ppmps').delete().eq('ppmp_id', selectedPPMP.ppmp_id);
+            if (error) throw error;
+            
+            // Audit Log
+            await logAudit(adminName, 'Delete PPMP', `Deleted PPMP ${selectedPPMP.ppmp_id} (${selectedPPMP.name})`);
 
-                setPpmps(prev => prev.filter(p => p.ppmp_id !== selectedPPMP.ppmp_id));
-                closeModal();
-            } catch (err) {
-                console.error("Error deleting PPMP:", err.message);
-                alert("Failed to delete PPMP: " + err.message);
-            }
+            setPpmps(prev => prev.filter(p => p.ppmp_id !== selectedPPMP.ppmp_id));
+            setIsDeleteConfirmOpen(false);
+            closeModal();
+        } catch (err) {
+            console.error("Error deleting PPMP:", err.message);
+            alert("Failed to delete PPMP: " + err.message);
         }
     };
 
@@ -256,7 +231,7 @@ export default function PPMPScreen() {
                     </style>
                 </head>
                 <body>
-                    <h1>Project Procurement Management Plan</h1>
+                    <h1>Project Procurement Monitoring Plan</h1>
                     <h3>${selectedPPMP.ppmp_id}</h3>
                     
                     <div class="info-grid">
@@ -318,43 +293,12 @@ export default function PPMPScreen() {
     };
 
     const handleAddItem = () => {
-        let maxId = 0;
-        inventoryList.forEach(item => {
-            if (item.item_id > maxId) maxId = item.item_id;
-        });
-        ppmpForm.items.forEach(item => {
-            if (item.itemNumber && item.itemNumber.startsWith('ITM-')) {
-                const num = parseInt(item.itemNumber.replace('ITM-', ''), 10);
-                if (!isNaN(num) && num > maxId) maxId = num;
-            }
-        });
-        const nextSku = `ITM-${String(maxId + 1).padStart(4, '0')}`;
-        
-        setPpmpForm({ ...ppmpForm, items: [...ppmpForm.items, { itemNumber: nextSku, itemDescription: '', quantity: '', unit: '' }] });
+        setPpmpForm({ ...ppmpForm, items: [...ppmpForm.items, { itemNumber: '', itemDescription: '', quantity: '', unit: '' }] });
     };
 
     const handleRemoveItem = (index) => {
         const newItems = ppmpForm.items.filter((_, i) => i !== index);
         setPpmpForm({ ...ppmpForm, items: newItems });
-    };
-
-    const handleAddUnit = async (index) => {
-        const newUnit = window.prompt("Enter new unit name:");
-        if (newUnit && newUnit.trim() !== '') {
-            const lowerUnit = newUnit.trim().toLowerCase();
-            if (!units.includes(lowerUnit)) {
-                try {
-                    const { error } = await supabase.from('units').insert([{ name: lowerUnit }]);
-                    if (error) throw error;
-                    setUnits([...units, lowerUnit]);
-                } catch (err) {
-                    console.error("Error adding unit:", err.message);
-                    alert("Failed to add unit.");
-                    return;
-                }
-            }
-            handleItemChange(index, 'unit', lowerUnit);
-        }
     };
 
     const renderPPMPForm = (isCreate) => (
@@ -375,7 +319,7 @@ export default function PPMPScreen() {
             </div>
 
             <h4 className="text-base font-bold text-slate-800 mb-3 shrink-0">Requested Items</h4>
-            <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-100 rounded-2xl mb-4 min-h-0 bg-white/40">
+            <div className="overflow-x-auto overflow-y-auto flex-1 border border-slate-100 rounded-2xl mb-4 min-h-[240px] bg-white/40">
                 <table className="min-w-full divide-y divide-slate-100 relative">
                     <thead className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
                         <tr>
@@ -389,34 +333,93 @@ export default function PPMPScreen() {
                     <tbody className="bg-transparent divide-y divide-slate-100">
                         {ppmpForm.items.map((item, index) => (
                             <tr key={index} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-4 py-3">
-                                    <input type="text" required value={item.itemNumber} onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="SKU/No." />
+                                <td className="px-4 py-3 relative">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="text"
+                                            required
+                                            value={item.itemNumber}
+                                            onFocus={() => setActiveDropdownIndex(index)}
+                                            onBlur={() => {
+                                                setTimeout(() => setActiveDropdownIndex(null), 200);
+                                            }}
+                                            onChange={(e) => {
+                                                handleItemChange(index, 'itemNumber', e.target.value);
+                                                setActiveDropdownIndex(index);
+                                            }}
+                                            className="w-full pr-8 px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium"
+                                            placeholder="SKU/No."
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setActiveDropdownIndex(activeDropdownIndex === index ? null : index);
+                                            }}
+                                            className="absolute right-2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    {activeDropdownIndex === index && (
+                                        <div className="absolute left-0 mt-1 bg-white border border-slate-200/80 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto w-[320px] sm:w-[450px] p-1.5 backdrop-blur-md">
+                                            {(() => {
+                                                const query = (item.itemNumber || '').toLowerCase().trim();
+                                                const filtered = inventoryList.filter(inv => {
+                                                    const sku = `ITM-${String(inv.item_id).padStart(4, '0')}`.toLowerCase();
+                                                    const name = (inv.item || '').toLowerCase();
+                                                    return sku.includes(query) || name.includes(query);
+                                                });
+
+                                                if (filtered.length === 0) {
+                                                    return (
+                                                        <div className="px-4 py-3 text-sm text-slate-400 font-semibold italic text-center">
+                                                            No matching items
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return filtered.map(inv => {
+                                                    const sku = `ITM-${String(inv.item_id).padStart(4, '0')}`;
+                                                    return (
+                                                        <button
+                                                            key={inv.item_id}
+                                                            type="button"
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault();
+                                                                handleItemChange(index, 'itemNumber', sku);
+                                                                handleItemChange(index, 'itemDescription', inv.item || '');
+                                                                if (inv.unit_name) {
+                                                                    const unitToSet = inv.unit_name.toLowerCase();
+                                                                    if (unitToSet && !units.includes(unitToSet)) {
+                                                                        setUnits(prev => [...prev, unitToSet]);
+                                                                    }
+                                                                    handleItemChange(index, 'unit', unitToSet);
+                                                                }
+                                                                setActiveDropdownIndex(null);
+                                                            }}
+                                                            className="w-full text-left px-4 py-3 hover:bg-indigo-50/50 transition-colors text-sm font-semibold text-slate-700 border-b border-slate-100 last:border-0 flex justify-between items-center gap-4 cursor-pointer rounded-lg"
+                                                        >
+                                                            <span className="font-mono text-xs text-indigo-600 bg-indigo-50 border border-indigo-100/50 px-2.5 py-1 rounded-lg shrink-0">{sku}</span>
+                                                            <span className="text-slate-600 truncate text-sm font-medium flex-1 text-right">{inv.item}</span>
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Description" />
+                                    <input type="text" required readOnly value={item.itemDescription} className="w-full px-3 py-1.5 bg-slate-100/80 border border-slate-200/60 rounded-xl focus:outline-none text-sm text-slate-500 font-medium cursor-not-allowed shadow-inner" placeholder="Select item first" />
                                 </td>
                                 <td className="px-4 py-3">
                                     <input type="number" required min="1" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Qty" />
                                 </td>
                                 <td className="px-4 py-3">
-                                    <div className="flex space-x-2">
-                                        <select
-                                            required
-                                            value={item.unit}
-                                            onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                                            className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold cursor-pointer"
-                                        >
-                                            <option value="" disabled>Unit</option>
-                                            {units.map((u) => (
-                                                <option key={u} value={u}>{u}</option>
-                                            ))}
-                                        </select>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddUnit(index)}
-                                            className="px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-bold text-xs shadow-sm whitespace-nowrap cursor-pointer"
-                                        >+ Add</button>
-                                    </div>
+                                    <input type="text" required readOnly value={item.unit} className="w-full px-3 py-1.5 bg-slate-100/80 border border-slate-200/60 rounded-xl focus:outline-none text-sm text-slate-500 font-medium cursor-not-allowed shadow-inner" placeholder="Unit" />
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                     <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500 hover:text-red-700 transition-colors cursor-pointer" title="Remove Item">
@@ -441,7 +444,7 @@ export default function PPMPScreen() {
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t border-slate-100 shrink-0">
-                <button type="button" onClick={() => { isCreate ? setIsCreateModalOpen(false) : setIsEditingPPMP(false); }} className="px-5 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">
+                <button type="button" onClick={() => { if (isCreate) { setIsCreateModalOpen(false); } else { setIsEditingPPMP(false); } setActiveDropdownIndex(null); }} className="px-5 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm">
                     Cancel
                 </button>
                 <button type="submit" className="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold text-sm shadow-sm cursor-pointer">
@@ -521,7 +524,7 @@ export default function PPMPScreen() {
                                         <button onClick={handleGeneratePPMP} className="px-5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100/80 rounded-xl transition font-semibold text-sm shadow-sm whitespace-nowrap cursor-pointer">
                                             Generate PPMP
                                         </button>
-                                        <button onClick={handleDeletePPMP} className="px-5 py-2 bg-white text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition font-semibold text-sm shadow-sm cursor-pointer">
+                                        <button onClick={() => setIsDeleteConfirmOpen(true)} className="px-5 py-2 bg-white text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-50 transition font-semibold text-sm shadow-sm cursor-pointer">
                                             Delete
                                         </button>
                                     </div>
@@ -541,7 +544,7 @@ export default function PPMPScreen() {
                     <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden transform transition-all">
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h3 className="text-xl font-black text-slate-800">Create New PPMP</h3>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
+                            <button onClick={() => { setIsCreateModalOpen(false); setActiveDropdownIndex(null); }} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
                         </div>
                         {renderPPMPForm(true)}
                     </div>
@@ -556,7 +559,7 @@ export default function PPMPScreen() {
                 <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
                     <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
                         <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-indigo-500 to-indigo-700"></span>
-                        Project Procurement Management Plan (PPMP)
+                        Project Procurement Monitoring Plan (PPMP)
                     </h2>
                     <button onClick={handleOpenCreateModal} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm cursor-pointer">
                         + Create New PPMP
@@ -579,6 +582,41 @@ export default function PPMPScreen() {
                     </div>
                 </main>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteConfirmOpen && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-[60] p-4 transition-opacity duration-300">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-6 rounded-2xl shadow-2xl w-full max-w-md transform transition-all relative">
+                        <div className="flex flex-col items-center text-center p-4">
+                            <div className="p-3 bg-rose-50 border border-rose-100 rounded-full text-rose-600 mb-4 animate-bounce">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-800 mb-2">Delete PPMP</h3>
+                            <p className="text-slate-500 text-xs font-semibold leading-relaxed mb-6">
+                                Are you sure you want to permanently delete <span className="font-mono font-bold text-slate-800">{selectedPPMP?.ppmp_id}</span>? This action cannot be undone.
+                            </p>
+                            <div className="flex space-x-3 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteConfirmOpen(false)}
+                                    className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-xs shadow-sm cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeletePPMP}
+                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-rose-600 to-rose-700 text-white rounded-xl hover:from-rose-700 hover:to-rose-800 transition font-bold text-xs shadow-md shadow-rose-600/10 cursor-pointer"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -234,6 +234,39 @@ const server = http.createServer(async (req, res) => {
                     const parsed = JSON.parse(body);
                     const { editingId, updatePayload } = parsed;
                     const result = await makeSupabaseRequest(`/rest/v1/personnel?personnel_id=eq.${editingId}`, 'PATCH', updatePayload);
+                    
+                    if ((result.status === 200 || result.status === 204) && updatePayload.personnel_id && Number(updatePayload.personnel_id) !== Number(editingId)) {
+                        // Primary key has changed. Update the corresponding Auth user email.
+                        try {
+                            const usersRes = await makeSupabaseRequest('/auth/v1/admin/users', 'GET');
+                            if (usersRes.status === 200 && usersRes.data && usersRes.data.users) {
+                                const formatId = (id) => {
+                                    const str = String(id);
+                                    if (str.length === 8) {
+                                        return `${str.slice(0, 4)}-${str.slice(4)}`;
+                                    }
+                                    return str;
+                                };
+                                const oldEmail1 = `${editingId}@invtrack.local`.toLowerCase();
+                                const oldEmail2 = `${formatId(editingId)}@invtrack.local`.toLowerCase();
+                                const newEmail = `${formatId(updatePayload.personnel_id)}@invtrack.local`.toLowerCase();
+                                
+                                const matchedUser = usersRes.data.users.find(u => 
+                                    u.email && (u.email.toLowerCase() === oldEmail1 || u.email.toLowerCase() === oldEmail2)
+                                );
+                                
+                                if (matchedUser) {
+                                    console.log(`Updating auth email for user ${matchedUser.id} from ${matchedUser.email} to ${newEmail}`);
+                                    await makeSupabaseRequest(`/auth/v1/admin/users/${matchedUser.id}`, 'PUT', {
+                                        email: newEmail
+                                    });
+                                }
+                            }
+                        } catch (authErr) {
+                            console.error("Error updating corresponding auth user email:", authErr);
+                        }
+                    }
+
                     res.writeHead(result.status, corsHeaders);
                     res.end(JSON.stringify(result.data));
                 } catch (e) {
@@ -252,6 +285,108 @@ const server = http.createServer(async (req, res) => {
                     const parsed = JSON.parse(body);
                     const { id } = parsed;
                     const result = await makeSupabaseRequest(`/rest/v1/personnel?personnel_id=eq.${id}`, 'DELETE');
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        // Department endpoints
+        if (pathname === '/api/departments/add' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { dept } = parsed;
+                    
+                    if (!dept) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing department name" }));
+                        return;
+                    }
+
+                    const result = await makeSupabaseRequest('/rest/v1/department', 'POST', { dept });
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/departments/update' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { oldDept, newDept } = parsed;
+                    
+                    if (!oldDept || !newDept) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing oldDept or newDept" }));
+                        return;
+                    }
+
+                    // 1. Create the new department
+                    const addRes = await makeSupabaseRequest('/rest/v1/department', 'POST', { dept: newDept });
+                    if (addRes.status !== 201 && addRes.status !== 200) {
+                        res.writeHead(addRes.status, corsHeaders);
+                        res.end(JSON.stringify({ error: "Failed to create new department name", details: addRes.data }));
+                        return;
+                    }
+
+                    // 2. Update personnel referencing oldDept
+                    const updatePersRes = await makeSupabaseRequest(`/rest/v1/personnel?dept=eq.${encodeURIComponent(oldDept)}`, 'PATCH', { dept: newDept });
+                    if (updatePersRes.status !== 200 && updatePersRes.status !== 204) {
+                        // Rollback new department
+                        await makeSupabaseRequest(`/rest/v1/department?dept=eq.${encodeURIComponent(newDept)}`, 'DELETE');
+                        res.writeHead(updatePersRes.status, corsHeaders);
+                        res.end(JSON.stringify({ error: "Failed to update personnel department reference", details: updatePersRes.data }));
+                        return;
+                    }
+
+                    // 3. Update requisition_issuance referencing oldDept
+                    await makeSupabaseRequest(`/rest/v1/requisition_issuance?dept=eq.${encodeURIComponent(oldDept)}`, 'PATCH', { dept: newDept });
+
+                    // 4. Update ppmps referencing oldDept
+                    await makeSupabaseRequest(`/rest/v1/ppmps?department=eq.${encodeURIComponent(oldDept)}`, 'PATCH', { department: newDept });
+
+                    // 5. Delete the old department
+                    await makeSupabaseRequest(`/rest/v1/department?dept=eq.${encodeURIComponent(oldDept)}`, 'DELETE');
+                    
+                    res.writeHead(200, corsHeaders);
+                    res.end(JSON.stringify({ success: true }));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/departments/delete' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { dept } = parsed;
+                    
+                    if (!dept) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing department name" }));
+                        return;
+                    }
+
+                    const result = await makeSupabaseRequest(`/rest/v1/department?dept=eq.${encodeURIComponent(dept)}`, 'DELETE');
                     res.writeHead(result.status, corsHeaders);
                     res.end(JSON.stringify(result.data));
                 } catch (e) {

@@ -98,11 +98,15 @@ export default function StaffPPMPScreen() {
             console.warn("Could not check/create default category:", e.message);
         }
 
+        // Fetch latest inventory from database
+        const { data: latestInv, error: invErr } = await supabase.from('inventory_procurement').select('*');
+        if (invErr) throw invErr;
+
         const newInventoryItemsMap = new Map();
         for (const item of items) {
             const parsedId = parseInt(item.itemNumber.replace('ITM-', ''), 10);
             if (!isNaN(parsedId)) {
-                const exists = inventoryList.find(inv => inv.item_id === parsedId);
+                const exists = latestInv.find(inv => inv.item_id === parsedId);
                 if (!exists && !newInventoryItemsMap.has(parsedId)) {
                     newInventoryItemsMap.set(parsedId, {
                         item_id: parsedId,
@@ -131,9 +135,33 @@ export default function StaffPPMPScreen() {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         try {
-            await syncNewItemsToInventory(ppmpForm.items);
+            // Fetch latest inventory list from database to determine the absolute max item_id
+            const { data: latestInv, error: invErr } = await supabase.from('inventory_procurement').select('item_id');
+            if (invErr) throw invErr;
+            
+            let currentMaxId = 0;
+            if (latestInv) {
+                latestInv.forEach(item => {
+                    if (item.item_id > currentMaxId) currentMaxId = item.item_id;
+                });
+            }
 
-            const { error } = await supabase.from('ppmps').update({ items: ppmpForm.items }).eq('ppmp_id', ppmpForm.ppmp_id);
+            // Map each item: if it is new, assign it the next sequential ID
+            const updatedItems = ppmpForm.items.map(item => {
+                const parsedId = parseInt(String(item.itemNumber).replace('ITM-', ''), 10);
+                const exists = !isNaN(parsedId) && latestInv && latestInv.some(inv => inv.item_id === parsedId);
+                
+                if (!exists) {
+                    currentMaxId += 1;
+                    const newIdStr = `ITM-${String(currentMaxId).padStart(4, '0')}`;
+                    return { ...item, itemNumber: newIdStr };
+                }
+                return item;
+            });
+
+            await syncNewItemsToInventory(updatedItems);
+
+            const { error } = await supabase.from('ppmps').update({ items: updatedItems }).eq('ppmp_id', ppmpForm.ppmp_id);
             if (error) throw error;
             
             // Audit Log
@@ -142,11 +170,11 @@ export default function StaffPPMPScreen() {
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
             
-            setSelectedPPMP(ppmpForm);
+            setSelectedPPMP({ ...selectedPPMP, items: updatedItems });
             setIsEditingPPMP(false);
         } catch (err) {
             console.error("Error saving PPMP:", err.message);
-            alert("Failed to save changes: " + err.message);
+            window.showAlert("Failed to save changes: " + err.message, "Error");
         }
     };
 
@@ -176,7 +204,7 @@ export default function StaffPPMPScreen() {
                     </style>
                 </head>
                 <body>
-                    <h1>Project Procurement Management Plan</h1>
+                    <h1>Project Procurement Monitoring Plan</h1>
                     <h3>${selectedPPMP.ppmp_id}</h3>
                     
                     <div class="info-grid">
@@ -245,6 +273,26 @@ export default function StaffPPMPScreen() {
         setPpmpForm({ ...ppmpForm, items: newItems });
     };
 
+    const handleItemNumberChange = (index, value) => {
+        const newItems = [...ppmpForm.items];
+        newItems[index].itemNumber = value;
+
+        // Auto-fill description and unit if we find a match
+        const parsedId = parseInt(value.replace('ITM-', ''), 10);
+        if (!isNaN(parsedId)) {
+            const matched = inventoryList.find(inv => inv.item_id === parsedId);
+            if (matched) {
+                newItems[index].itemDescription = matched.item || '';
+                const matchedUnit = (matched.unit_name || matched.unit || '').toLowerCase();
+                newItems[index].unit = matchedUnit;
+                if (matchedUnit && !units.includes(matchedUnit)) {
+                    setUnits(prev => [...prev, matchedUnit]);
+                }
+            }
+        }
+        setPpmpForm({ ...ppmpForm, items: newItems });
+    };
+
     const handleAddItem = () => {
         let maxId = 0;
         inventoryList.forEach(item => {
@@ -277,7 +325,7 @@ export default function StaffPPMPScreen() {
                     setUnits([...units, lowerUnit]);
                 } catch (err) {
                     console.error("Error adding unit:", err.message);
-                    alert("Failed to add unit.");
+                    window.showAlert("Failed to add unit.", "Error");
                     return;
                 }
             }
@@ -318,8 +366,26 @@ export default function StaffPPMPScreen() {
                         <tbody className="bg-transparent divide-y divide-slate-100">
                             {ppmpForm.items.map((item, index) => (
                                 <tr key={index} className="hover:bg-purple-50/10 transition-colors">
-                                    <td className="px-4 py-3">
-                                        <input type="text" required value={item.itemNumber} onChange={(e) => handleItemChange(index, 'itemNumber', e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-xs transition-all text-slate-700 shadow-sm font-bold" placeholder="SKU/No." />
+                                    <td className="px-4 py-3 relative">
+                                        <input 
+                                            type="text" 
+                                            required 
+                                            list={`inventory-items-${index}`}
+                                            value={item.itemNumber} 
+                                            onChange={(e) => handleItemNumberChange(index, e.target.value)} 
+                                            className="w-full px-3 py-1.5 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-xs transition-all text-slate-700 shadow-sm font-bold" 
+                                            placeholder="SKU/No." 
+                                        />
+                                        <datalist id={`inventory-items-${index}`}>
+                                            {inventoryList.map(inv => {
+                                                const sku = `ITM-${String(inv.item_id).padStart(4, '0')}`;
+                                                return (
+                                                    <option key={inv.item_id} value={sku}>
+                                                        {inv.item}
+                                                    </option>
+                                                );
+                                            })}
+                                        </datalist>
                                     </td>
                                     <td className="px-4 py-3">
                                         <input type="text" required value={item.itemDescription} onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)} className="w-full px-3 py-1.5 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-xs transition-all text-slate-700 shadow-sm" placeholder="Description" />
@@ -473,7 +539,7 @@ export default function StaffPPMPScreen() {
                 <header className="h-16 border-b border-slate-200/80 bg-white/40 backdrop-blur-md flex items-center justify-between px-6 lg:px-8 shrink-0">
                     <h2 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
                         <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-purple-500 to-indigo-600"></span>
-                        Project Procurement Plans (PPMP)
+                        Project Procurement Monitoring Plan (PPMP)
                     </h2>
                 </header>
 

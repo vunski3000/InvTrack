@@ -76,7 +76,7 @@ export default function StaffMyRequestsScreen() {
     };
 
     const handleDeleteRequest = async (requestId) => {
-        if (window.confirm("Are you sure you want to delete this request?")) {
+        window.showConfirm("Are you sure you want to delete this request?", "Delete Request", async () => {
             try {
                 const { error } = await supabase
                     .from('requisition_issuance')
@@ -90,12 +90,12 @@ export default function StaffMyRequestsScreen() {
 
                 setRequests(prev => prev.filter(req => req.request_id !== requestId));
                 closeModal();
-                alert("Request deleted successfully!");
+                window.showAlert("Request deleted successfully!", "Success");
             } catch (err) {
                 console.error("Error deleting request:", err);
-                alert("Failed to delete request: " + err.message);
+                window.showAlert("Failed to delete request: " + err.message, "Error");
             }
-        }
+        });
     };
 
     const handleGenerateRequest = async () => {

@@ -70,6 +70,7 @@ export default function InventoryScreen() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [nextItemId, setNextItemId] = useState(1);
     const [newItems, setNewItems] = useState([{ item: '', description: '', category: '', quantity_available: '', unit: '' }]);
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
@@ -101,7 +102,20 @@ export default function InventoryScreen() {
         setEditingItem(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleOpenAddModal = () => {
+    const handleOpenAddModal = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('inventory_procurement')
+                .select('item_id')
+                .order('item_id', { ascending: false })
+                .limit(1);
+            if (error) throw error;
+            const maxId = (data && data.length > 0) ? data[0].item_id : 0;
+            setNextItemId(maxId + 1);
+        } catch (err) {
+            console.error("Error fetching max id:", err.message);
+            setNextItemId(1);
+        }
         setNewItems([{ item: '', description: '', category: '', quantity_available: '', unit: '' }]);
         setIsAddModalOpen(true);
     };
@@ -129,7 +143,7 @@ export default function InventoryScreen() {
         e.preventDefault();
         if (newItems.length === 0) return;
         try {
-            // Fetch the current maximum item_id to determine the next IDs
+            // Re-fetch max id on submit just to make sure there are no duplicate key conflicts if others inserted
             const { data: maxData, error: maxError } = await supabase
                 .from('inventory_procurement')
                 .select('item_id')
@@ -137,10 +151,11 @@ export default function InventoryScreen() {
                 .limit(1);
                 
             if (maxError) throw maxError;
-            let nextId = (maxData && maxData.length > 0) ? maxData[0].item_id + 1 : 1;
+            const currentMaxId = (maxData && maxData.length > 0) ? maxData[0].item_id : 0;
+            const startId = Math.max(nextItemId, currentMaxId + 1);
 
             const itemsToInsert = newItems.map((item, index) => ({
-                item_id: nextId + index,
+                item_id: startId + index,
                 item: item.item,
                 description: item.description,
                 category_name: item.category,
@@ -257,7 +272,7 @@ export default function InventoryScreen() {
     };
 
     const handleDeleteItem = async (itemId) => {
-        if (window.confirm("Are you sure you want to delete this item?")) {
+        window.showConfirm("Are you sure you want to delete this item?", "Delete Item", async () => {
             try {
                 const itemToDelete = inventory.find(i => i.item_id === itemId);
 
@@ -275,7 +290,7 @@ export default function InventoryScreen() {
                 console.error("Error deleting item:", err.message);
                 alert("Failed to delete item: " + err.message);
             }
-        }
+        });
     };
 
     const handleTogglePPMPItem = (item) => {
@@ -551,6 +566,7 @@ export default function InventoryScreen() {
                                 <table className="min-w-full divide-y divide-slate-100 relative">
                                     <thead className="bg-slate-50/80 sticky top-0 z-10 shadow-sm">
                                         <tr>
+                                            <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/6">Item Number</th>
                                             <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Item Name</th>
                                             <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Description</th>
                                             <th scope="col" className="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider w-1/5">Category</th>
@@ -562,6 +578,11 @@ export default function InventoryScreen() {
                                     <tbody className="bg-transparent divide-y divide-slate-100">
                                         {newItems.map((item, index) => (
                                             <tr key={index} className="hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-4 py-3">
+                                                    <span className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-100/50 px-2.5 py-1.5 rounded-xl block text-center w-full shadow-sm">
+                                                        ITM-{String(nextItemId + index).padStart(4, '0')}
+                                                    </span>
+                                                </td>
                                                 <td className="px-4 py-3">
                                                     <input type="text" required value={item.item} onChange={(e) => handleAddFormChange(index, 'item', e.target.value)} className="w-full px-3 py-1.5 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-medium" placeholder="Item Name" />
                                                 </td>

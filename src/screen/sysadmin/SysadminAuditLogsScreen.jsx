@@ -89,50 +89,59 @@ export default function SysadminAuditLogsScreen() {
             alert("No logs to export.");
             return;
         }
-        if (totalCount > 10000 && !window.confirm(`This will export ${totalCount} records. Continue?`)) {
-            return;
-        }
 
-        setIsExporting(true);
-        try {
-            let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
-            if (debouncedSearchQuery) {
-                const search = `%${debouncedSearchQuery}%`;
-                query = query.or(`action.ilike.${search},user_name.ilike.${search},details.ilike.${search}`);
+        const proceedWithExport = async () => {
+            setIsExporting(true);
+            try {
+                let query = supabase.from('audit_logs').select('*').order('created_at', { ascending: false });
+                if (debouncedSearchQuery) {
+                    const search = `%${debouncedSearchQuery}%`;
+                    query = query.or(`action.ilike.${search},user_name.ilike.${search},details.ilike.${search}`);
+                }
+                if (startDate) query = query.gte('created_at', new Date(startDate).toISOString());
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setDate(end.getDate() + 1);
+                    query = query.lte('created_at', end.toISOString());
+                }
+
+                const { data: allLogs, error } = await query;
+                if (error) throw error;
+
+                const headers = ['Date & Time', 'User', 'Action', 'Details'];
+                const csvRows = [headers.join(',')];
+                allLogs.forEach(log => {
+                    const date = `"${new Date(log.created_at).toLocaleString().replace(/"/g, '""')}"`;
+                    const user = `"${(log.user_name || log.user_id || 'System').replace(/"/g, '""')}"`;
+                    const action = `"${(log.action || '').replace(/"/g, '""')}"`;
+                    const details = `"${(log.details || '').replace(/"/g, '""')}"`;
+                    csvRows.push([date, user, action, details].join(','));
+                });
+
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("Failed to export logs: " + err.message);
+            } finally {
+                setIsExporting(false);
             }
-            if (startDate) query = query.gte('created_at', new Date(startDate).toISOString());
-            if (endDate) {
-                const end = new Date(endDate);
-                end.setDate(end.getDate() + 1);
-                query = query.lte('created_at', end.toISOString());
-            }
+        };
 
-            const { data: allLogs, error } = await query;
-            if (error) throw error;
-
-            const headers = ['Date & Time', 'User', 'Action', 'Details'];
-            const csvRows = [headers.join(',')];
-            allLogs.forEach(log => {
-                const date = `"${new Date(log.created_at).toLocaleString().replace(/"/g, '""')}"`;
-                const user = `"${(log.user_name || log.user_id || 'System').replace(/"/g, '""')}"`;
-                const action = `"${(log.action || '').replace(/"/g, '""')}"`;
-                const details = `"${(log.details || '').replace(/"/g, '""')}"`;
-                csvRows.push([date, user, action, details].join(','));
-            });
-
-            const csvContent = csvRows.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (err) {
-            alert("Failed to export logs: " + err.message);
-        } finally {
-            setIsExporting(false);
+        if (totalCount > 10000) {
+            window.showConfirm(
+                `This will export ${totalCount} records. Continue?`,
+                "Export Confirmation",
+                proceedWithExport
+            );
+        } else {
+            proceedWithExport();
         }
     };
 

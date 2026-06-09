@@ -84,7 +84,7 @@ export default function PurchaseRequestScreen() {
     };
 
     const handleDeleteRequest = async () => {
-        if (window.confirm(`Are you sure you want to delete purchase request ${selectedRequest.purchase_request_id}?`)) {
+        window.showConfirm(`Are you sure you want to delete purchase request ${selectedRequest.purchase_request_id}?`, "Delete Purchase Request", async () => {
             try {
                 const { error } = await supabase
                     .from('purchase_requests')
@@ -103,45 +103,53 @@ export default function PurchaseRequestScreen() {
                 console.error('Error deleting request:', error);
                 alert('Failed to delete request.');
             }
-        }
+        });
     };
 
     const handleRequestAction = async (requestId, action) => {
-        if (!window.confirm(`Are you sure you want to mark this request as ${action}?`)) {
-            return;
-        }
+        window.showConfirm(`Are you sure you want to mark this request as ${action}?`, "Confirm Action", async () => {
+            try {
+                const { error } = await supabase
+                    .from('purchase_requests')
+                    .update({ 
+                        status: action,
+                        approved_by: adminName 
+                    })
+                    .eq('purchase_request_id', requestId);
 
-        try {
-            const { error } = await supabase
-                .from('purchase_requests')
-                .update({ 
-                    status: action,
-                    approved_by: adminName 
-                })
-                .eq('purchase_request_id', requestId);
+                if (error) throw error;
+                
+                setPurchaseRequests(prevRequests => 
+                    prevRequests.map(req => 
+                        req.purchase_request_id === requestId 
+                            ? { ...req, status: action, approved_by: adminName } 
+                            : req
+                    )
+                );
 
-            if (error) throw error;
-            
-            setPurchaseRequests(prevRequests => 
-                prevRequests.map(req => 
-                    req.purchase_request_id === requestId 
-                        ? { ...req, status: action, approved_by: adminName } 
-                        : req
-                )
-            );
-            
-            if (selectedRequest && selectedRequest.purchase_request_id === requestId) {
-                setSelectedRequest({ ...selectedRequest, status: action, approved_by: adminName });
+                // Add Notification
+                const targetReq = purchaseRequests.find(r => r.purchase_request_id === requestId);
+                if (targetReq) {
+                    await supabase.from('notifications').insert([{
+                        target_user: targetReq.requested_by,
+                        message: `Your purchase request (${requestId}) has been ${action.toLowerCase()} by an Admin.`
+                    }]);
+                }
+
+                // Audit Log
+                await logAudit(adminName, 'Update Purchase Request Status', `Set purchase request ${requestId} to ${action}`);
+
+                // Update selectedRequest if it's the one being modified
+                if (selectedRequest && selectedRequest.purchase_request_id === requestId) {
+                    setSelectedRequest(prev => ({ ...prev, status: action, approved_by: adminName }));
+                }
+
+                alert(`Request successfully ${action.toLowerCase()} by ${adminName}.`);
+            } catch (err) {
+                console.error('Error updating purchase request:', err);
+                alert(`Failed to update the purchase request: ${err.message}`);
             }
-            
-            // Audit Log
-            await logAudit(adminName, `Purchase Request ${action}`, `Marked purchase request ${requestId} as ${action}`);
-            
-            alert(`Request successfully ${action.toLowerCase()} by ${adminName}.`);
-        } catch (err) {
-            console.error(`Error updating request to ${action}:`, err.message);
-            alert(`Failed to update the purchase request: ${err.message}`);
-        }
+        });
     };
 
     const handleSaveEdit = async (e) => {

@@ -33,24 +33,28 @@ export default function SysadminUserManagementScreen() {
     };
 
     const handleRoleChange = async (userId, newRole) => {
-        if (!window.confirm(`Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`)) return;
-        
-        // Optimistic UI Update
-        const previousUsers = [...users];
-        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        window.showConfirm(
+            `Are you sure you want to change this user's role to ${newRole.toUpperCase()}?`,
+            "Change Role",
+            async () => {
+                // Optimistic UI Update
+                const previousUsers = [...users];
+                setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
 
-        try {
-            const { error } = await supabase.functions.invoke('manage-users', {
-                body: { action: 'update_role', userId, newRole }
-            });
-            if (error) throw error;
-            
-            console.log(`Role for user ${userId} updated to ${newRole}`);
-        } catch (error) {
-            console.error("Error updating role:", error);
-            alert("Failed to update role. See console for details.");
-            setUsers(previousUsers); // Revert changes on failure
-        }
+                try {
+                    const { error } = await supabase.functions.invoke('manage-users', {
+                        body: { action: 'update_role', userId, newRole }
+                    });
+                    if (error) throw error;
+                    
+                    console.log(`Role for user ${userId} updated to ${newRole}`);
+                } catch (error) {
+                    console.error("Error updating role:", error);
+                    alert("Failed to update role. See console for details.");
+                    setUsers(previousUsers); // Revert changes on failure
+                }
+            }
+        );
     };
 
     return (

@@ -130,7 +130,7 @@ export default function StaffRequestScreen() {
                     setUnitsList(prev => [...prev, lowerUnit].sort());
                 } catch (err) {
                     console.error("Error adding unit:", err.message);
-                    alert("Failed to add new unit.");
+                    window.showAlert("Failed to add new unit.", "Error");
                     return;
                 }
             }
@@ -184,7 +184,7 @@ export default function StaffRequestScreen() {
             // Audit Log
             await logAudit(name, 'Submit Request', `Submitted new requisition request ${newId}`);
 
-            alert('Item requested successfully!');
+            window.showAlert('Item requested successfully!', 'Success');
             setDepartment('');
             setName('');
             setDesignation('');
@@ -194,7 +194,7 @@ export default function StaffRequestScreen() {
             fetchMyDetails();
         } catch (err) {
             console.error('Error submitting requisition:', err.message);
-            alert('Failed to submit request: ' + err.message);
+            window.showAlert('Failed to submit request: ' + err.message, 'Error');
         } finally {
             setIsSubmitting(false);
         }
