@@ -4,6 +4,8 @@ import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
 import { logAudit } from '../../utils/auditLogger';
 
+const PROXY_URL = 'http://localhost:3001';
+
 export default function InventoryScreen() {
     const navigate = useNavigate();
 
@@ -74,6 +76,10 @@ export default function InventoryScreen() {
     const [newItems, setNewItems] = useState([{ item: '', description: '', category: '', quantity_available: '', unit: '' }]);
     const [categories, setCategories] = useState([]);
     const [units, setUnits] = useState([]);
+    const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
+    const [newCategoryInput, setNewCategoryInput] = useState('');
+    const [editingCategoryName, setEditingCategoryName] = useState(null);
+    const [renameInput, setRenameInput] = useState('');
 
     // PPMP Creation State
     const [isCreatingPPMP, setIsCreatingPPMP] = useState(false);
@@ -224,7 +230,7 @@ export default function InventoryScreen() {
                     const { error } = await supabase.from('categories').insert([{ category_name: upperCategory }]);
                     if (error) {
                         console.warn("Note: Could not save category to DB:", error.message);
-                        alert("Warning: Could not save category permanently.\nReason: " + error.message);
+                        window.showAlert("Warning: Could not save category permanently.\nReason: " + error.message, "Warning");
                     }
                 } catch (err) {
                     console.error("Error adding category:", err.message);
@@ -235,10 +241,149 @@ export default function InventoryScreen() {
                 const updatedItems = [...newItems];
                 updatedItems[index].category = finalCategory;
                 setNewItems(updatedItems);
-            } else {
+            } else if (editingItem) {
                 setEditingItem(prev => ({ ...prev, category: finalCategory, category_name: finalCategory }));
             }
         }
+    };
+
+    const handleAddNewCategorySubmit = async () => {
+        if (!newCategoryInput || newCategoryInput.trim() === '') return;
+        const upperCategory = newCategoryInput.trim().toUpperCase();
+
+        const existingCat = categories.find(c => c.toUpperCase() === upperCategory);
+        if (existingCat) {
+            window.showAlert("A category with this name already exists.", "Validation Error");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('categories').insert([{ category_name: upperCategory }]);
+            if (error) throw error;
+            
+            // Log Audit
+            await logAudit(adminName, 'Add Category', `Added category "${upperCategory}"`);
+
+            setCategories(prev => [...prev, upperCategory]);
+            setNewCategoryInput('');
+        } catch (err) {
+            console.error("Error adding category:", err.message);
+            window.showAlert("Failed to add category: " + err.message, "Error");
+        }
+    };
+
+    const handleRenameCategorySubmit = async (oldName) => {
+        if (!renameInput || renameInput.trim() === '') {
+            setEditingCategoryName(null);
+            return;
+        }
+
+        // If the name is exactly the same (including case), just close editing
+        if (renameInput.trim() === oldName) {
+            setEditingCategoryName(null);
+            return;
+        }
+
+        const formattedNewName = renameInput.trim().toUpperCase();
+        const existingCat = categories.find(c => c.toUpperCase() === formattedNewName && c.toUpperCase() !== oldName.toUpperCase());
+        if (existingCat) {
+            window.showAlert("A category with this name already exists.", "Validation Error");
+            return;
+        }
+
+        try {
+            // Step 1: Insert the new category name (allowed by RLS policy)
+            const { error: insertError } = await supabase
+                .from('categories')
+                .insert([{ category_name: formattedNewName }]);
+            if (insertError) throw insertError;
+
+            // Step 2: Update items referencing the old category name
+            const { error: invError } = await supabase
+                .from('inventory_procurement')
+                .update({ category_name: formattedNewName })
+                .eq('category_name', oldName);
+            if (invError) {
+                // Rollback Step 1 on failure
+                await supabase.from('categories').delete().eq('category_name', formattedNewName);
+                throw invError;
+            }
+
+            // Step 3: Delete the old category name (allowed by RLS policy)
+            const { error: deleteError } = await supabase
+                .from('categories')
+                .delete()
+                .eq('category_name', oldName);
+            if (deleteError) {
+                // Rollback Step 2 & 1 on failure
+                await supabase.from('inventory_procurement').update({ category_name: oldName }).eq('category_name', formattedNewName);
+                await supabase.from('categories').delete().eq('category_name', formattedNewName);
+                throw deleteError;
+            }
+
+            // Log Audit
+            await logAudit(adminName, 'Rename Category', `Renamed category "${oldName}" to "${formattedNewName}"`);
+
+            // Update local state (case-insensitive and trimmed for robustness)
+            setCategories(prev => prev.map(c => c.trim().toUpperCase() === oldName.trim().toUpperCase() ? formattedNewName : c));
+            setInventory(prev => prev.map(item => (item.category_name || '').trim().toUpperCase() === oldName.trim().toUpperCase() ? { ...item, category_name: formattedNewName } : item));
+            
+            // If the category filter was set to this category, update it
+            if (categoryFilter.trim().toUpperCase() === oldName.trim().toUpperCase()) {
+                setCategoryFilter(formattedNewName);
+            }
+
+            setEditingCategoryName(null);
+        } catch (err) {
+            console.error("Error renaming category:", err.message);
+            window.showAlert("Failed to rename category: " + err.message, "Error");
+        }
+    };
+
+    const handleDeleteCategory = async (categoryToDelete) => {
+        const itemsCount = inventory.filter(item => (item.category_name || item.category) === categoryToDelete).length;
+        
+        let confirmMsg = `Are you sure you want to delete the category "${categoryToDelete}"?`;
+        if (itemsCount > 0) {
+            confirmMsg = `This category is currently used by ${itemsCount} item(s). Deleting it will leave these items uncategorized. Are you sure you want to proceed?`;
+        }
+
+        window.showConfirm(confirmMsg, "Delete Category", async () => {
+            try {
+                // Update items in inventory to null category directly via Supabase client (now supported by RLS)
+                if (itemsCount > 0) {
+                    const { error: updateError } = await supabase
+                        .from('inventory_procurement')
+                        .update({ category_name: null })
+                        .eq('category_name', categoryToDelete);
+                    if (updateError) throw updateError;
+                }
+
+                // Delete from categories table directly via Supabase client
+                const { error: deleteError } = await supabase
+                    .from('categories')
+                    .delete()
+                    .eq('category_name', categoryToDelete);
+                if (deleteError) throw deleteError;
+
+                // Log Audit
+                await logAudit(adminName, 'Delete Category', `Deleted category "${categoryToDelete}"`);
+
+                // Update local state
+                setCategories(prev => prev.filter(c => c !== categoryToDelete));
+                setInventory(prev => prev.map(item => item.category_name === categoryToDelete ? { ...item, category_name: null } : item));
+                
+                // If the category filter was set to this category, reset it
+                if (categoryFilter === categoryToDelete) {
+                    setCategoryFilter('All');
+                }
+
+                window.showAlert("Category deleted successfully.", "Success");
+            } catch (err) {
+                console.error("Error deleting category:", err.message);
+                window.showAlert("Failed to delete category: " + err.message, "Error");
+            }
+        });
     };
 
     const handleAddUnit = async (index = null) => {
@@ -720,6 +865,104 @@ export default function InventoryScreen() {
                 </div>
             )}
 
+            {/* Manage Categories Modal */}
+            {isManageCategoriesOpen && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center z-50 transition-opacity duration-300 p-4">
+                    <div className="bg-white/95 border border-slate-200/60 backdrop-blur-xl p-8 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] transform transition-all">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
+                            <h3 className="text-xl font-black text-slate-800">Manage Categories</h3>
+                            <button onClick={() => { setIsManageCategoriesOpen(false); setEditingCategoryName(null); }} className="text-slate-400 hover:text-slate-600 text-3xl leading-none cursor-pointer">&times;</button>
+                        </div>
+
+                        {/* Add New Category form inline */}
+                        <div className="mb-6 bg-slate-50/70 p-4 rounded-xl border border-slate-200/50 shrink-0">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Add New Category</label>
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    placeholder="e.g. ELECTRONICS"
+                                    value={newCategoryInput}
+                                    onChange={(e) => setNewCategoryInput(e.target.value)}
+                                    className="w-full px-4 py-2 bg-white/90 border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent text-sm transition-all text-slate-700 shadow-sm font-semibold"
+                                />
+                                <button
+                                    onClick={handleAddNewCategorySubmit}
+                                    className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition font-semibold text-sm shadow-sm whitespace-nowrap cursor-pointer"
+                                >
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* List of categories */}
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-3 mb-6 min-h-0">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 sticky top-0 bg-white/95 py-1 z-10">Existing Categories</label>
+                            {categories.length === 0 ? (
+                                <p className="text-slate-400 text-center py-8 font-semibold text-sm">No categories found.</p>
+                            ) : (
+                                categories.map((cat) => (
+                                    <div key={cat} className="flex justify-between items-center bg-slate-50/60 border border-slate-100 p-3.5 rounded-xl hover:bg-slate-100/40 transition">
+                                        {editingCategoryName === cat ? (
+                                            <div className="flex items-center space-x-2 w-full">
+                                                <input
+                                                    type="text"
+                                                    value={renameInput}
+                                                    onChange={(e) => setRenameInput(e.target.value)}
+                                                    className="w-full px-3 py-1 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-bold text-slate-700"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    onClick={() => handleRenameCategorySubmit(cat)}
+                                                    className="px-2.5 py-1 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg transition font-bold text-xs cursor-pointer shadow-sm"
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingCategoryName(null)}
+                                                    className="px-2.5 py-1 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-lg transition font-bold text-xs cursor-pointer"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="font-bold text-slate-700 text-sm">{cat}</span>
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingCategoryName(cat);
+                                                            setRenameInput(cat);
+                                                        }}
+                                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100/80 rounded-lg transition font-bold text-xs cursor-pointer"
+                                                    >
+                                                        Rename
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteCategory(cat)}
+                                                        className="px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100/80 rounded-lg transition font-bold text-xs cursor-pointer"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="flex justify-end pt-4 border-t border-slate-100 shrink-0">
+                            <button
+                                onClick={() => { setIsManageCategoriesOpen(false); setEditingCategoryName(null); }}
+                                className="px-5 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition font-semibold text-sm cursor-pointer shadow-sm"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Top Navigation */}
             <Navigation />
 
@@ -753,6 +996,7 @@ export default function InventoryScreen() {
                             </>
                         ) : (
                             <>
+                                <button onClick={() => setIsManageCategoriesOpen(true)} className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap cursor-pointer">Manage Categories</button>
                                 <button onClick={() => setIsCreatingStockCard(true)} className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap cursor-pointer">Create Stock Card</button>
                                 <button onClick={() => setIsCreatingPPMP(true)} className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap cursor-pointer">Create PPMP</button>
                                 <button onClick={handleOpenAddModal} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm whitespace-nowrap cursor-pointer">+ Add New Item</button>

@@ -161,7 +161,11 @@ export default function StaffPPMPScreen() {
 
             await syncNewItemsToInventory(updatedItems);
 
-            const { error } = await supabase.from('ppmps').update({ items: updatedItems }).eq('ppmp_id', ppmpForm.ppmp_id);
+            const { error } = await supabase.from('ppmps').update({
+                name: ppmpForm.name,
+                department: ppmpForm.department,
+                items: updatedItems
+            }).eq('ppmp_id', ppmpForm.ppmp_id);
             if (error) throw error;
             
             // Audit Log
@@ -170,7 +174,7 @@ export default function StaffPPMPScreen() {
             const { data } = await supabase.from('ppmps').select('*').order('created_at', { ascending: false });
             if (data) setPpmps(data);
             
-            setSelectedPPMP({ ...selectedPPMP, items: updatedItems });
+            setSelectedPPMP({ ...selectedPPMP, name: ppmpForm.name, department: ppmpForm.department, items: updatedItems });
             setIsEditingPPMP(false);
         } catch (err) {
             console.error("Error saving PPMP:", err.message);
@@ -338,11 +342,23 @@ export default function StaffPPMPScreen() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200/50 shrink-0">
                 <div className="col-span-2">
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Project Name</label>
-                    <input type="text" readOnly value={ppmpForm.name} className="w-full px-3 py-2 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-medium text-xs shadow-inner" />
+                    <input
+                        type="text"
+                        required
+                        value={ppmpForm.name}
+                        onChange={(e) => setPpmpForm({ ...ppmpForm, name: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-slate-700 font-medium text-xs shadow-sm"
+                    />
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Department</label>
-                    <input type="text" readOnly value={ppmpForm.department} className="w-full px-3 py-2 bg-slate-100 border border-slate-200/60 rounded-xl text-slate-500 cursor-not-allowed font-medium text-xs shadow-inner" />
+                    <input
+                        type="text"
+                        required
+                        value={ppmpForm.department}
+                        onChange={(e) => setPpmpForm({ ...ppmpForm, department: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-slate-200/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-slate-700 font-medium text-xs shadow-sm"
+                    />
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Year</label>

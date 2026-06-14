@@ -397,6 +397,81 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        // Category endpoints
+        if (pathname === '/api/categories/update' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { oldName, newName } = parsed;
+                    
+                    if (!oldName || !newName) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing oldName or newName" }));
+                        return;
+                    }
+
+                    // 1. Create the new category
+                    const addRes = await makeSupabaseRequest('/rest/v1/categories', 'POST', { category_name: newName });
+                    if (addRes.status !== 201 && addRes.status !== 200) {
+                        res.writeHead(addRes.status, corsHeaders);
+                        res.end(JSON.stringify({ error: "Failed to create new category name", details: addRes.data }));
+                        return;
+                    }
+
+                    // 2. Update items referencing oldName
+                    const updateItemsRes = await makeSupabaseRequest(`/rest/v1/inventory_procurement?category_name=eq.${encodeURIComponent(oldName)}`, 'PATCH', { category_name: newName });
+                    if (updateItemsRes.status !== 200 && updateItemsRes.status !== 204) {
+                        // Rollback new category
+                        await makeSupabaseRequest(`/rest/v1/categories?category_name=eq.${encodeURIComponent(newName)}`, 'DELETE');
+                        res.writeHead(updateItemsRes.status, corsHeaders);
+                        res.end(JSON.stringify({ error: "Failed to update inventory category reference", details: updateItemsRes.data }));
+                        return;
+                    }
+
+                    // 3. Delete the old category
+                    await makeSupabaseRequest(`/rest/v1/categories?category_name=eq.${encodeURIComponent(oldName)}`, 'DELETE');
+                    
+                    res.writeHead(200, corsHeaders);
+                    res.end(JSON.stringify({ success: true }));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
+        if (pathname === '/api/categories/delete' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { categoryToDelete } = parsed;
+                    
+                    if (!categoryToDelete) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing categoryToDelete" }));
+                        return;
+                    }
+
+                    // 1. Update items in inventory to null category
+                    await makeSupabaseRequest(`/rest/v1/inventory_procurement?category_name=eq.${encodeURIComponent(categoryToDelete)}`, 'PATCH', { category_name: null });
+
+                    // 2. Delete from categories table
+                    const result = await makeSupabaseRequest(`/rest/v1/categories?category_name=eq.${encodeURIComponent(categoryToDelete)}`, 'DELETE');
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
         // Not Found
         res.writeHead(404, corsHeaders);
         res.end(JSON.stringify({ error: "Not Found" }));
