@@ -292,33 +292,17 @@ export default function InventoryScreen() {
         }
 
         try {
-            // Step 1: Insert the new category name (allowed by RLS policy)
-            const { error: insertError } = await supabase
-                .from('categories')
-                .insert([{ category_name: formattedNewName }]);
-            if (insertError) throw insertError;
+            const response = await fetch(`${PROXY_URL}/api/categories/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ oldName, newName: formattedNewName })
+            });
 
-            // Step 2: Update items referencing the old category name
-            const { error: invError } = await supabase
-                .from('inventory_procurement')
-                .update({ category_name: formattedNewName })
-                .eq('category_name', oldName);
-            if (invError) {
-                // Rollback Step 1 on failure
-                await supabase.from('categories').delete().eq('category_name', formattedNewName);
-                throw invError;
-            }
-
-            // Step 3: Delete the old category name (allowed by RLS policy)
-            const { error: deleteError } = await supabase
-                .from('categories')
-                .delete()
-                .eq('category_name', oldName);
-            if (deleteError) {
-                // Rollback Step 2 & 1 on failure
-                await supabase.from('inventory_procurement').update({ category_name: oldName }).eq('category_name', formattedNewName);
-                await supabase.from('categories').delete().eq('category_name', formattedNewName);
-                throw deleteError;
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || `HTTP error! status: ${response.status}`);
             }
 
             // Log Audit
@@ -350,21 +334,18 @@ export default function InventoryScreen() {
 
         window.showConfirm(confirmMsg, "Delete Category", async () => {
             try {
-                // Update items in inventory to null category directly via Supabase client (now supported by RLS)
-                if (itemsCount > 0) {
-                    const { error: updateError } = await supabase
-                        .from('inventory_procurement')
-                        .update({ category_name: null })
-                        .eq('category_name', categoryToDelete);
-                    if (updateError) throw updateError;
-                }
+                const response = await fetch(`${PROXY_URL}/api/categories/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ categoryToDelete })
+                });
 
-                // Delete from categories table directly via Supabase client
-                const { error: deleteError } = await supabase
-                    .from('categories')
-                    .delete()
-                    .eq('category_name', categoryToDelete);
-                if (deleteError) throw deleteError;
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+                }
 
                 // Log Audit
                 await logAudit(adminName, 'Delete Category', `Deleted category "${categoryToDelete}"`);
