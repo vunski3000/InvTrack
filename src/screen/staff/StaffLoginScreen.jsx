@@ -121,13 +121,6 @@ export default function StaffLoginScreen() {
                         {isLoading ? 'Authenticating...' : 'Sign In'}
                     </button>
                 </form>
-
-                <p className="text-center text-xs text-slate-500 mt-8 select-none border-t border-slate-100/80 pt-6">
-                    Don't have an account?{' '}
-                    <span onClick={() => navigate('/staff-signup')} className="font-bold text-purple-600 hover:text-purple-800 cursor-pointer hover:underline">
-                        Sign up now
-                    </span>
-                </p>
             </div>
         </div>
     );

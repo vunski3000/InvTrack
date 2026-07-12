@@ -18,7 +18,6 @@ import StaffDashboardScreen from './screen/staff/StaffDashboardScreen.jsx'
 import StaffInventoryScreen from './screen/staff/StaffInventoryScreen.jsx'
 import StaffPPMPScreen from './screen/staff/StaffPPMPScreen.jsx'
 import StaffMyRequestsScreen from './screen/staff/StaffMyRequestsScreen.jsx'
-import StaffSignupScreen from './screen/staff/StaffSignupScreen.jsx'
 import AuditScreen from './screen/admin/AuditScreen.jsx'
 import SysAdminLoginScreen from './screen/sysadmin/SysAdminLoginScreen.jsx'
 import SysadminDashboardScreen from './screen/sysadmin/SysadminDashboardScreen.jsx'
@@ -37,7 +36,6 @@ function App() {
             <Route path="/" element={<HomeScreen />} />
             <Route path="/login" element={<AdminLoginScreen />} />
             <Route path="/staff-login" element={<StaffLoginScreen />} />
-            <Route path="/staff-signup" element={<StaffSignupScreen />} />
             <Route path="/home" element={<HomeScreen />} />
             <Route path="/sysadmin-login" element={<SysAdminLoginScreen />} />
             {/* Admin Protected Routes */}

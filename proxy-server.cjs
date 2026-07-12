@@ -169,6 +169,37 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        if (pathname === '/api/users/create' && req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', async () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    const { email, password, role } = parsed;
+                    
+                    if (!email || !password || !role) {
+                        res.writeHead(400, corsHeaders);
+                        res.end(JSON.stringify({ error: "Missing required fields" }));
+                        return;
+                    }
+
+                    const result = await makeSupabaseRequest('/auth/v1/admin/users', 'POST', {
+                        email: email,
+                        password: password,
+                        user_metadata: { role: role },
+                        email_confirm: true
+                    });
+                    
+                    res.writeHead(result.status, corsHeaders);
+                    res.end(JSON.stringify(result.data));
+                } catch (e) {
+                    res.writeHead(400, corsHeaders);
+                    res.end(JSON.stringify({ error: "Invalid JSON format or request failed" }));
+                }
+            });
+            return;
+        }
+
         // Live System Configuration endpoints
         if (pathname === '/api/config' && req.method === 'GET') {
             const config = readConfig();

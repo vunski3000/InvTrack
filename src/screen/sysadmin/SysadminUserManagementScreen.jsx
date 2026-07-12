@@ -18,6 +18,15 @@ export default function SysadminUserManagementScreen() {
     const [resetSuccess, setResetSuccess] = useState('');
     const [resetLoading, setResetLoading] = useState(false);
 
+    // Modal state for creating users
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createEmail, setCreateEmail] = useState('');
+    const [createPassword, setCreatePassword] = useState('');
+    const [createRole, setCreateRole] = useState('staff');
+    const [createError, setCreateError] = useState('');
+    const [createSuccess, setCreateSuccess] = useState('');
+    const [createLoading, setCreateLoading] = useState(false);
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -152,6 +161,53 @@ export default function SysadminUserManagementScreen() {
         });
     };
 
+    const handleCreateUserSubmit = async (e) => {
+        if (e) e.preventDefault();
+        setCreateError('');
+        setCreateSuccess('');
+
+        if (!createEmail || !createPassword || !createRole) {
+            setCreateError("All fields are required.");
+            return;
+        }
+
+        if (createPassword.length < 6) {
+            setCreateError("Password must be at least 6 characters long.");
+            return;
+        }
+
+        setCreateLoading(true);
+        try {
+            const response = await fetch(`${PROXY_URL}/api/users/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: createEmail,
+                    password: createPassword,
+                    role: createRole
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || "Failed to create user");
+            }
+
+            setCreateSuccess("User created successfully!");
+            fetchUsers(); // Refresh directory
+            setTimeout(() => {
+                setShowCreateModal(false);
+            }, 1500);
+        } catch (error) {
+            console.error("Error creating user:", error);
+            setCreateError("Failed to create user: " + error.message);
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
         navigate('/');
@@ -214,12 +270,32 @@ export default function SysadminUserManagementScreen() {
 
             {/* Main Content */}
             <div className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8 z-10">
-                <header className="mb-8">
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                        <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-pink-500 to-rose-600"></span>
-                        User Management Directory
-                    </h2>
-                    <p className="text-slate-400 text-xs font-semibold mt-1 uppercase tracking-wider">Control and view all system personnel accounts</p>
+                <header className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                            <span className="h-8 w-2 rounded-lg bg-gradient-to-b from-pink-500 to-rose-600"></span>
+                            User Management Directory
+                        </h2>
+                        <p className="text-slate-400 text-xs font-semibold mt-1 uppercase tracking-wider">Control and view all system personnel accounts</p>
+                    </div>
+                    <div>
+                        <button
+                            onClick={() => {
+                                setShowCreateModal(true);
+                                setCreateEmail('');
+                                setCreatePassword('');
+                                setCreateRole('staff');
+                                setCreateError('');
+                                setCreateSuccess('');
+                            }}
+                            className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 shadow-md shadow-pink-600/10 hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add New User
+                        </button>
+                    </div>
                 </header>
 
                 <div className="bg-white/85 backdrop-blur-md rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden w-full max-w-6xl mx-auto">
@@ -403,6 +479,115 @@ export default function SysadminUserManagementScreen() {
                                         <>
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                                             Confirm Reset
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Create User Modal Overlay */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white/95 border border-white/80 backdrop-blur-xl p-6 sm:p-8 rounded-3xl shadow-[0_20px_50px_-15px_rgba(219,39,119,0.15)] max-w-md w-full relative z-10 transition-all duration-300 transform scale-100 animate-in fade-in zoom-in-95">
+                        {/* Close button */}
+                        <button 
+                            type="button" 
+                            onClick={() => setShowCreateModal(false)}
+                            className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200 cursor-pointer"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+
+                        <div className="mb-6">
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-pink-50 border border-pink-100 rounded-full text-[10px] font-bold tracking-wider uppercase text-pink-600 mb-3 shadow-sm">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                User Provisioning Console
+                            </div>
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">Provision New User</h3>
+                            <p className="text-slate-400 text-xs font-semibold mt-1">
+                                Add a new authenticated identity to the platform.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleCreateUserSubmit} className="space-y-4">
+                            {createError && (
+                                <div className="text-xs text-red-700 bg-red-50/80 p-3 rounded-xl border border-red-100 text-center font-bold animate-pulse">
+                                    {createError}
+                                </div>
+                            )}
+
+                            {createSuccess && (
+                                <div className="text-xs text-emerald-700 bg-emerald-50/80 p-3 rounded-xl border border-emerald-100 text-center font-bold">
+                                    {createSuccess}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="block w-full px-4 py-2.5 bg-white border border-slate-200/60 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm font-semibold text-slate-800"
+                                    placeholder="e.g. staff123@invtrack.local"
+                                    value={createEmail}
+                                    onChange={(e) => setCreateEmail(e.target.value)}
+                                    disabled={createLoading}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="block w-full px-4 py-2.5 bg-white border border-slate-200/60 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm font-semibold text-slate-800"
+                                    placeholder="Minimum 6 characters"
+                                    value={createPassword}
+                                    onChange={(e) => setCreatePassword(e.target.value)}
+                                    disabled={createLoading}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1.5">System Role</label>
+                                <select
+                                    value={createRole}
+                                    onChange={(e) => setCreateRole(e.target.value)}
+                                    className="block w-full px-4 py-2.5 bg-white border border-slate-200/60 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm font-bold text-slate-800 cursor-pointer"
+                                    disabled={createLoading}
+                                >
+                                    <option value="staff">Staff</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="sysadmin">System Admin</option>
+                                </select>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100/80 mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCreateModal(false)}
+                                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200/80 transition-all duration-200 cursor-pointer"
+                                    disabled={createLoading}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 shadow-md shadow-pink-600/10 hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={createLoading}
+                                >
+                                    {createLoading ? (
+                                        <>
+                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Provisioning...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            Create User
                                         </>
                                     )}
                                 </button>
