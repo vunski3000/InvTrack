@@ -353,7 +353,6 @@ export default function SysadminUserManagementScreen() {
                                                 >
                                                     <option value="staff">Staff</option>
                                                     <option value="admin">Admin</option>
-                                                    <option value="sysadmin">System Admin</option>
                                                 </select>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -561,7 +560,6 @@ export default function SysadminUserManagementScreen() {
                                 >
                                     <option value="staff">Staff</option>
                                     <option value="admin">Admin</option>
-                                    <option value="sysadmin">System Admin</option>
                                 </select>
                             </div>
 
