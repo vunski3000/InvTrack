@@ -20,15 +20,15 @@ if (fs.existsSync(envPath)) {
     });
 }
 
-const supabaseUrl = envConfig['VITE_SUPABASE_URL'] || 'https://ycykvkhpyxxhgroqchhd.supabase.co';
-const serviceRoleKey = envConfig['SUPABASE_SECRET_KEY'] || envConfig['VITE_SUPABASE_SECRET_KEY'];
+const supabaseUrl = process.env.VITE_SUPABASE_URL || envConfig['VITE_SUPABASE_URL'] || 'https://ycykvkhpyxxhgroqchhd.supabase.co';
+const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || envConfig['SUPABASE_SECRET_KEY'] || process.env.VITE_SUPABASE_SECRET_KEY || envConfig['VITE_SUPABASE_SECRET_KEY'];
 
 if (!serviceRoleKey) {
-    console.error("Error: SUPABASE_SECRET_KEY is missing from .env!");
+    console.error("Error: SUPABASE_SECRET_KEY is missing from environment variables and .env!");
     process.exit(1);
 }
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 const CONFIG_FILE = path.join(__dirname, 'system_config.json');
 
