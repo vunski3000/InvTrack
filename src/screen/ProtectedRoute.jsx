@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001';
+
 export default function ProtectedRoute({ children, allowedRoles, redirectTo = '/' }) {
     const { user, role, loading } = useAuth();
     const [maintenance, setMaintenance] = useState(false);
@@ -10,7 +12,7 @@ export default function ProtectedRoute({ children, allowedRoles, redirectTo = '/
     useEffect(() => {
         const checkMaintenance = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/config');
+                const response = await fetch(`${PROXY_URL}/api/config`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.maintenanceMode && role !== 'sysadmin') {

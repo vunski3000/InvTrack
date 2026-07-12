@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 
-const PROXY_URL = 'http://localhost:3001';
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001';
 
 export default function SysadminUserManagementScreen() {
     const navigate = useNavigate();

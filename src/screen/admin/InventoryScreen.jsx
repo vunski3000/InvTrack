@@ -4,7 +4,7 @@ import Navigation from './Navigation';
 import { supabase } from '../../supabaseClient';
 import { logAudit } from '../../utils/auditLogger';
 
-const PROXY_URL = 'http://localhost:3001';
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001';
 
 export default function InventoryScreen() {
     const navigate = useNavigate();
