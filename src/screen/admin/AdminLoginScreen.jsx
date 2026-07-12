@@ -121,13 +121,6 @@ export default function AdminLoginScreen() {
                         {isLoading ? 'Authenticating...' : 'Sign In'}
                     </button>
                 </form>
-
-                <p className="text-center text-xs text-slate-500 mt-8 select-none border-t border-slate-100/80 pt-6">
-                    Don't have an account?{' '}
-                    <span onClick={() => navigate('/signup')} className="font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer hover:underline">
-                        Sign up now
-                    </span>
-                </p>
             </div>
         </div>
     );

@@ -4,7 +4,6 @@ import { AuthProvider } from './contexts/AuthContext.jsx'
 import AdminLoginScreen from './screen/admin/AdminLoginScreen.jsx'
 import StaffLoginScreen from './screen/staff/StaffLoginScreen.jsx'
 import ProtectedRoute from './screen/ProtectedRoute.jsx'
-import SignupScreen from './screen/SignupScreen.jsx'
 import HomeScreen from './screen/HomeScreen.jsx'
 import InventoryScreen from './screen/admin/InventoryScreen.jsx'
 import DashboardScreen from './screen/admin/DashboardScreen.jsx'
@@ -38,7 +37,6 @@ function App() {
             <Route path="/" element={<HomeScreen />} />
             <Route path="/login" element={<AdminLoginScreen />} />
             <Route path="/staff-login" element={<StaffLoginScreen />} />
-            <Route path="/signup" element={<SignupScreen />} />
             <Route path="/staff-signup" element={<StaffSignupScreen />} />
             <Route path="/home" element={<HomeScreen />} />
             <Route path="/sysadmin-login" element={<SysAdminLoginScreen />} />
